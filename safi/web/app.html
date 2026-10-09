@@ -122,6 +122,19 @@
             border:1px solid var(--line); border-radius:11px; padding:16px; min-height:120px; }
   .answer.empty { color:var(--dim); font-style:italic; }
   .badges { display:flex; flex-wrap:wrap; gap:8px; margin:14px 0; }
+  .thread { display:flex; flex-direction:column; gap:10px; max-height:52vh;
+            overflow:auto; padding-right:4px; }
+  .bubble { max-width:88%; padding:11px 14px; border-radius:14px; font-size:14px;
+            white-space:pre-wrap; overflow-wrap:break-word; }
+  .bubble .who { display:block; font-size:11px; margin-bottom:4px; }
+  .bubble.me { align-self:flex-end; background:var(--grad); color:#fff;
+               border-bottom-right-radius:4px; }
+  .bubble.me .who { color:rgba(255,255,255,.82); }
+  .bubble.ex { align-self:flex-start; background:var(--bg2);
+               border:1px solid var(--line); border-bottom-left-radius:4px; }
+  .bubble.ex .who { color:var(--acc); }
+  .newthread { font-size:12.5px; color:var(--dim); width:100%; text-align:right;
+               margin-top:10px; }
   .expert { border:1px solid var(--line); border-radius:12px; padding:16px; background:var(--bg2); }
   .expert .name { font-weight:650; font-size:14.5px; }
   .expert .purpose { color:var(--mut); font-size:12.5px; margin:3px 0 12px; }
@@ -214,7 +227,8 @@ let state = {
   experts: [],
   templates: [],
   overview: {},
-  current: "dash"
+  current: "dash",
+  thread: []
 };
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c =>
@@ -346,7 +360,7 @@ function instancePicker(sel){
   const s = document.createElement("select");
   s.innerHTML = state.experts.map(x =>
     `<option value="${esc(x.instance_id)}" ${x.instance_id===state.instance?"selected":""}>${esc(x.service_name)} — ${esc(x.instance_id)}</option>`).join("");
-  s.onchange = ()=> { state.instance = s.value; };
+  s.onchange = ()=> { state.instance = s.value; resetThread(); };
   return s;
 }
 
@@ -373,13 +387,17 @@ async function renderChat(){
         <div class="err" id="chatErr"></div>
       </div>
       <div class="card" style="grid-column:span 1">
-        <h3>Answer</h3>
-        <div class="badges" id="chatBadges"></div>
-        <div class="answer empty" id="answer">Answers appear here. The expert can only use what your role permits.</div>
+        <div class="row" style="justify-content:space-between;align-items:center">
+          <h3>Conversation</h3>
+          <button class="btn ghost sm" id="newThreadBtn">New thread</button>
+        </div>
+        <div class="thread" id="thread"><div class="empty">Your thread starts here. Ask your first question.</div></div>
+        <div class="badges row" id="chatBadges"></div>
         <details id="srcDetails" style="display:none">
-          <summary>Sources consulted (role-filtered)</summary>
+          <summary>Sources used for the last answer (role-filtered)</summary>
           <div id="srcTable"></div>
         </details>
+        <div class="newthread">Each answer is still grounded in freshly loaded, role-permitted context.</div>
       </div>
     </div>`;
   $("chatInstance").appendChild(instancePicker());
@@ -389,6 +407,7 @@ async function renderChat(){
       const next = [...document.querySelectorAll("#roleChips .chip.on")].map(x=>x.dataset.r);
       if(!next.length){ c.classList.add("on"); return; }
       setRoles(next);
+      resetThread();
     };
   });
   const EXAMPLES = {
@@ -413,9 +432,33 @@ async function renderChat(){
   $("sampleBtn").onclick = ()=>{
     const ex = EXAMPLES[state.roles[0]||"User"] || [];
     $("q").value = ex[Math.floor(Math.random()*ex.length)] || "";
+    $("q").focus();
   };
   $("askBtn").onclick = askChat;
+  $("newThreadBtn").onclick = ()=>{ resetThread(); $("q").value=""; $("q").focus(); };
+  $("q").addEventListener("keydown", e=>{ if((e.ctrlKey||e.metaKey)&&e.key==="Enter") askChat(); });
   $("srcDetails").style.display = "none";
+  renderThread();
+}
+
+function renderThread(){
+  const t = $("thread");
+  if(!t) return;
+  if(!state.thread.length){
+    t.innerHTML = '<div class="empty">Your thread starts here. Ask your first question.</div>';
+    return;
+  }
+  t.innerHTML = state.thread.map(m=>`
+    <div class="bubble me"><span class="who">You · ${esc(m.role)}</span>${esc(m.q)}</div>
+    <div class="bubble ex"><span class="who">Service Expert</span>${esc(m.a)}</div>`).join("");
+  t.scrollTop = t.scrollHeight;
+}
+
+function resetThread(){
+  state.thread = [];
+  renderThread();
+  const b = $("chatBadges"); if(b) b.innerHTML = "";
+  const d = $("srcDetails"); if(d) d.style.display = "none";
 }
 
 async function askChat(){
@@ -423,16 +466,20 @@ async function askChat(){
   const q = $("q").value.trim();
   $("chatErr").textContent = "";
   if(!iid){ $("chatErr").textContent = "Create a Service Expert first (Experts view)."; return; }
-  if(!q){ $("chatErr").textContent = "Type a question."; return; }
+  if(!q){ $("q").focus(); return; }
   $("askBtn").disabled = true;
   $("askBtn").innerHTML = '<span class="spinner"></span>Thinking…';
-  $("answer").className = "answer empty";
-  $("answer").textContent = "Loading permitted context, then building the answer…";
-  $("srcDetails").style.display = "none";
+  const message = state.thread.length
+    ? `We are continuing the same conversation (I am the same user, role(s): ${state.roles.join(", ")}). ` +
+      "Conversation so far:\n\n" +
+      state.thread.map(m=>`[Me] ${m.q}\n[Expert] ${m.a}`).join("\n\n") +
+      `\n\nMy next question: ${q}`
+    : q;
   try {
-    const d = await api(`/service-experts/${enc(iid)}/chat`, {json:{message:q}});
-    $("answer").className = "answer";
-    $("answer").textContent = d.answer;
+    const d = await api(`/service-experts/${enc(iid)}/chat`, {json:{message}});
+    state.thread.push({role: state.roles.join(", "), q, a: d.answer});
+    renderThread();
+    $("q").value = "";
     const b = $("chatBadges");
     b.innerHTML = `
       <span class="tag accent">mode: ${esc(d.llm_mode)}</span>
@@ -448,7 +495,8 @@ async function askChat(){
         <td><span class="tag ${i.sha_status==="historical"?"warn":"ok"}">${esc(i.sha_status||"—")}</span></td></tr>`).join("")}
       </table>` : '<div class="empty">No knowledge was permitted for this role and question.</div>';
     $("srcDetails").style.display = "block";
-  } catch(e){ $("answer").textContent = "—"; $("chatErr").textContent = String(e); }
+    $("q").focus();
+  } catch(e){ $("chatErr").textContent = String(e); }
   finally { $("askBtn").disabled = false; $("askBtn").textContent = "Ask the Service Expert"; }
 }
 
