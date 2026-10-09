@@ -14,6 +14,7 @@ if str(ROOT) not in sys.path:
 
 from safi.app import create_app  # noqa: E402
 from safi.demo import ensure_demo_repos, load_demo_manifest  # noqa: E402
+from safi.llm import LLMClient  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402
 
 
@@ -30,7 +31,7 @@ def db_path(tmp_path):
 
 @pytest.fixture()
 def app(db_path):
-    return create_app(db_path=db_path, root_dir=ROOT)
+    return create_app(db_path=db_path, root_dir=ROOT, llm=LLMClient(endpoint=""))
 
 
 @pytest.fixture()
@@ -488,7 +489,7 @@ def test_11_root_openapi_contract(client, manifest):
 
 def test_12_restart_persistence(db_path, manifest):
     """TEST 12 — templates, instances and verified knowledge survive restart."""
-    app1 = create_app(db_path=db_path, root_dir=ROOT)
+    app1 = create_app(db_path=db_path, root_dir=ROOT, llm=LLMClient(endpoint=""))
     c1 = TestClient(app1)
     iid = "persist-" + uuid.uuid4().hex[:6]
     r = c1.post("/service-experts",
@@ -502,7 +503,7 @@ def test_12_restart_persistence(db_path, manifest):
     assert r.status_code == 201
     del c1, app1
 
-    app2 = create_app(db_path=db_path, root_dir=ROOT)
+    app2 = create_app(db_path=db_path, root_dir=ROOT, llm=LLMClient(endpoint=""))
     c2 = TestClient(app2)
     r = c2.get(f"/service-experts/{iid}", headers=H("dev", "Developer"))
     assert r.status_code == 200, "instance lost after restart"
@@ -563,11 +564,20 @@ def test_chat_ui_is_served_and_shares_the_one_endpoint(client, gw):
     assert "text/html" in root.headers["content-type"]
     assert "/chat" in root.text
 
+    demo = client.get("/demo")
+    assert demo.status_code == 200
+    assert "text/html" in demo.headers["content-type"]
+    assert "/chat" in demo.text
+
     instances = client.get("/ui/instances")
     assert instances.status_code == 200
     assert iid in instances.json()["instances"]
 
-    ui_paths = {"/", "/ui/instances"}
+    status = client.get("/ui/status")
+    assert status.status_code == 200
+    assert status.json()["llm_mode"] in ("endpoint", "extractive")
+
+    ui_paths = {"/", "/demo", "/ui/instances", "/ui/status"}
     served = client.get("/openapi.json").json()["paths"]
     for p in ui_paths:
         assert p not in served

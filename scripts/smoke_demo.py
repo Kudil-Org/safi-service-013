@@ -13,6 +13,10 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
+import os  # noqa: E402
+
+os.environ.setdefault("SAFI_LLM_ENDPOINT", "")  # deterministic extractive mode
+
 import httpx  # noqa: E402
 import uvicorn  # noqa: E402
 

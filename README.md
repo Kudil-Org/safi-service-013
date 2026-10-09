@@ -43,6 +43,29 @@ instance, set `X-User-Id` + roles, ask, and inspect the RBAC-filtered context
 that was loaded). It is a thin page over the **one** Chat endpoint — not a
 separate Help application. Swagger UI remains at `/docs`.
 
+For a **no-technical-knowledge demo**, open <http://127.0.0.1:8013/demo> — a
+guided page where the tester picks a persona (End user / Developer / Tester),
+clicks a plain-English example, and sees the answer plus which sources the
+expert was allowed to look at.
+
+### Live AI (Groq or any OpenAI-compatible endpoint)
+
+Copy `.env.example` to `.env` and fill it in (`.env` is gitignored):
+
+```bat
+copy .env.example .env
+```
+
+```ini
+SAFI_LLM_ENDPOINT=https://api.groq.com/openai/v1
+SAFI_LLM_API_KEY=gsk_...
+SAFI_LLM_MODEL=openai/gpt-oss-120b
+```
+
+When configured, Chat uses the live model over **role-filtered context only**;
+`/ui/status` and every response report the mode. Without it, Chat automatically
+falls back to the deterministic extractive answerer.
+
 Run all acceptance tests (TEST 1–12 plus RBAC/ingest extras):
 
 ```bat
@@ -56,8 +79,8 @@ chat -> ingest -> fresh learning chat):
 python scripts\smoke_demo.py
 ```
 
-The LLM endpoint is optional and singular — configure exactly one via
-environment variables:
+The LLM endpoint is optional and singular — configure exactly one via a
+gitignored `.env` file (auto-loaded) or environment variables:
 
 ```bat
 set SAFI_LLM_ENDPOINT=https://your-llm/v1/chat/completions
@@ -292,7 +315,8 @@ safi/
   template.py      template loading + manifest validation
   rbac.py          standard roles, role->context map, category defaults
   chat/            role-filtered context assembly + answer generation
-  web/index.html   small built-in chat page (no build step, one endpoint)
+  web/index.html   advanced console page (/)
+  web/tester.html  guided, no-technical-knowledge demo (/demo)
   storage/         SQLite provenance store (instances, knowledge, sessions)
   llm.py           one configured LLM endpoint (extractive fallback)
   gitinfo.py       Git CLI: repo/branch/SHA/log/files

@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Service Expert — Live Demo</title>
+<style>
+  :root { --bg:#f6f8fc; --card:#ffffff; --ink:#1b2430; --mut:#5b6b83; --line:#e2e8f2;
+          --blue:#2f6bff; --blue-soft:#eaf1ff; --green:#17a673; --green-soft:#e7f7f0;
+          --amber:#b7791f; --amber-soft:#fff6e6; --red:#d64545; --shadow:0 6px 24px rgba(27,36,48,.08); }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink);
+         font:16px/1.6 "Segoe UI", system-ui, sans-serif; }
+  .wrap { max-width:860px; margin:0 auto; padding:28px 20px 60px; }
+  header { text-align:center; margin-bottom:22px; }
+  header h1 { font-size:30px; margin:0 0 6px; letter-spacing:-.02em; }
+  header p { color:var(--mut); margin:0; font-size:17px; }
+  .status { display:inline-flex; align-items:center; gap:8px; margin-top:14px;
+            background:var(--card); border:1px solid var(--line); border-radius:999px;
+            padding:6px 14px; font-size:14px; box-shadow:var(--shadow); }
+  .dot { width:9px; height:9px; border-radius:50%; background:#b9c3d4; }
+  .dot.on { background:var(--green); box-shadow:0 0 0 4px var(--green-soft); }
+  .dot.off { background:#b9c3d4; box-shadow:0 0 0 4px #eef1f6; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:16px;
+          padding:22px; box-shadow:var(--shadow); margin-bottom:18px; }
+  .step { font-size:13px; font-weight:700; letter-spacing:.08em; text-transform:uppercase;
+          color:var(--blue); margin:0 0 4px; }
+  h2 { font-size:20px; margin:0 0 14px; }
+  .personas { display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; }
+  .persona { border:2px solid var(--line); border-radius:14px; padding:16px; cursor:pointer;
+             text-align:left; background:#fff; transition:all .12s; }
+  .persona:hover { border-color:#c7d5f2; }
+  .persona.sel { border-color:var(--blue); background:var(--blue-soft); }
+  .persona b { display:block; font-size:16px; margin-bottom:4px; }
+  .persona span { color:var(--mut); font-size:13.5px; }
+  .chips { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:14px; }
+  .chip { background:var(--blue-soft); color:#1d4fd6; border:1px solid #d3e0ff;
+          border-radius:999px; padding:7px 13px; font-size:14px; cursor:pointer; }
+  .chip:hover { background:#dfeaff; }
+  textarea { width:100%; min-height:84px; border:1.5px solid var(--line); border-radius:12px;
+             padding:13px 15px; font:inherit; resize:vertical; background:#fff; color:var(--ink); }
+  textarea:focus { outline:none; border-color:var(--blue); box-shadow:0 0 0 4px var(--blue-soft); }
+  .ask { display:inline-flex; align-items:center; gap:8px; margin-top:14px; background:var(--blue);
+         color:#fff; border:0; border-radius:12px; padding:13px 26px; font-size:16px;
+         font-weight:600; cursor:pointer; }
+  .ask:hover { background:#2559dc; }
+  .ask:disabled { opacity:.55; cursor:default; }
+  .answer { white-space:pre-wrap; font-size:17px; line-height:1.7; }
+  .answer.empty { color:var(--mut); font-style:italic; }
+  .answer-badges { display:flex; flex-wrap:wrap; gap:8px; margin-top:16px; }
+  .badge { font-size:12.5px; padding:4px 11px; border-radius:999px; background:#eef2f9; color:var(--mut); }
+  .badge.ok { background:var(--green-soft); color:var(--green); }
+  .badge.warn { background:var(--amber-soft); color:var(--amber); }
+  details { margin-top:16px; border-top:1px solid var(--line); padding-top:14px; }
+  summary { cursor:pointer; color:var(--blue); font-size:14.5px; font-weight:600; }
+  table { width:100%; border-collapse:collapse; margin-top:12px; font-size:13.5px; }
+  th,td { text-align:left; padding:8px 10px; border-bottom:1px solid var(--line); vertical-align:top; }
+  th { color:var(--mut); font-weight:600; }
+  .mono { font-family:Consolas,monospace; }
+  .err { color:var(--red); font-size:14px; margin-top:12px; white-space:pre-wrap; }
+  .teach label { display:block; font-size:14px; color:var(--mut); margin:10px 0 5px; }
+  .teach input, .teach select, .teach textarea { width:100%; border:1.5px solid var(--line);
+      border-radius:10px; padding:11px 13px; font:inherit; background:#fff; color:var(--ink); }
+  .teach button { margin-top:12px; background:#0f2f5e; color:#fff; border:0; border-radius:11px;
+      padding:11px 20px; font-size:15px; font-weight:600; cursor:pointer; }
+  .note { background:var(--green-soft); border:1px solid #c9ecdd; color:#0d6b4a;
+          border-radius:10px; padding:11px 14px; font-size:14px; margin-top:12px; }
+  footer { text-align:center; color:var(--mut); font-size:14px; margin-top:10px; }
+  footer a { color:var(--blue); text-decoration:none; margin:0 8px; }
+  .spinner { width:16px; height:16px; border:2px solid rgba(255,255,255,.45);
+             border-top-color:#fff; border-radius:50%; animation:spin .7s linear infinite; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+  @media (max-width:680px) { .personas { grid-template-columns:1fr; } header h1 { font-size:24px; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Service Expert — Live Demo</h1>
+    <p>Ask about the API Gateway service in plain English. No technical setup needed.</p>
+    <div class="status"><span class="dot" id="dot"></span><span id="statusText">Checking connection…</span></div>
+  </header>
+
+  <div class="card">
+    <p class="step">Step 1</p>
+    <h2>Who are you?</h2>
+    <div class="personas" id="personas">
+      <button class="persona sel" data-role="User">
+        <b>End user</b><span>I just need to know how to use the API.</span>
+      </button>
+      <button class="persona" data-role="Developer">
+        <b>Developer</b><span>I work on the code and need the details.</span>
+      </button>
+      <button class="persona" data-role="Tester">
+        <b>Tester</b><span>I check that things behave as promised.</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="card">
+    <p class="step">Step 2</p>
+    <h2>What would you like to know?</h2>
+    <div class="chips" id="chips"></div>
+    <textarea id="q" placeholder="Type your question here… e.g. How do I make a reservation?"></textarea>
+    <br />
+    <button class="ask" id="ask"><span id="askLabel">Ask the Service Expert</span></button>
+    <div class="err" id="err"></div>
+  </div>
+
+  <div class="card">
+    <p class="step">Answer</p>
+    <div class="answer empty" id="answer">Your answer will appear here.</div>
+    <div class="answer-badges" id="badges"></div>
+    <details id="ctxDetails" style="display:none">
+      <summary>Show what the expert was allowed to look at</summary>
+      <div id="ctx"></div>
+    </details>
+  </div>
+
+  <div class="card teach">
+    <p class="step">Optional</p>
+    <h2>Teach the expert something it just learned</h2>
+    <p style="color:var(--mut); margin-top:-6px">Add a verified fact, then ask a new question — the expert will use it.</p>
+    <label>What kind of fact is it?</label>
+    <select id="icat">
+      <option>RCA finding</option><option>fix result</option><option>human correction</option>
+      <option>acceptance test result</option><option>Help correction</option><option>release result</option>
+    </select>
+    <label>The fact</label>
+    <textarea id="icontent" placeholder="e.g. The gateway rejects requests without an X-Request-Id header with HTTP 400."></textarea>
+    <label>Where did it come from? (source)</label>
+    <input id="isource" placeholder="e.g. RCA-2026-1014" />
+    <button id="ingest">Add this fact</button>
+    <div class="err" id="ierr"></div>
+    <div class="note" id="inote" style="display:none"></div>
+  </div>
+
+  <footer>
+    <a href="/">Advanced console</a> · <a href="/docs">API docs</a>
+  </footer>
+</div>
+
+<script>
+const PERSONAS = ["User","Developer","Tester"];
+const CHIPS = {
+  "User": [
+    "What can this service do?",
+    "How do I make a reservation?",
+    "Show me an example request.",
+    "Does it need any special header?"
+  ],
+  "Developer": [
+    "Where is this implemented in the code?",
+    "Which tests cover it?",
+    "What is the exact version (SHA) you are describing?",
+    "How is the request ID handled?"
+  ],
+  "Tester": [
+    "What should happen on a bad request?",
+    "Which acceptance tests exist?",
+    "What are the documented limits?"
+  ]
+};
+const $ = id => document.getElementById(id);
+let role = "User", iid = null;
+
+function renderChips(){
+  const box = $("chips"); box.innerHTML = "";
+  (CHIPS[role]||[]).forEach(q=>{
+    const c = document.createElement("button");
+    c.className = "chip"; c.type = "button"; c.textContent = q;
+    c.addEventListener("click", ()=>{ $("q").value = q; ask(); });
+    box.appendChild(c);
+  });
+}
+
+document.querySelectorAll(".persona").forEach(p=>{
+  p.addEventListener("click", ()=>{
+    document.querySelectorAll(".persona").forEach(x=>x.classList.remove("sel"));
+    p.classList.add("sel");
+    role = p.dataset.role;
+    renderChips();
+    $("q").value = "";
+  });
+});
+
+async function loadStatus(){
+  try {
+    const s = await (await fetch("/ui/status")).json();
+    const dot = $("dot");
+    const list = await (await fetch("/ui/instances")).json();
+    iid = (list.instances && list.instances[0]) || "api-gateway-expert";
+    if (s.llm_mode === "endpoint") {
+      dot.className = "dot on";
+      $("statusText").textContent = "Live AI connected (" + s.llm_model + ")";
+    } else {
+      dot.className = "dot off";
+      $("statusText").textContent = "Offline mode — answers quoted from the source documents";
+    }
+  } catch(e) {
+    $("statusText").textContent = "Could not reach the service";
+  }
+}
+
+function badge(text, cls){ const b=document.createElement("span"); b.className="badge"+(cls?" "+cls:""); b.textContent=text; return b; }
+
+async function ask(){
+  const q = $("q").value.trim();
+  if (!q) { $("q").focus(); return; }
+  $("err").textContent = ""; $("inote").style.display = "none";
+  $("answer").className = "answer empty";
+  $("answer").textContent = "Thinking…";
+  $("badges").innerHTML = "";
+  $("ask").disabled = true;
+  $("askLabel").textContent = "Thinking…";
+  try {
+    const r = await fetch(`/service-experts/${encodeURIComponent(iid)}/chat`, {
+      method:"POST",
+      headers:{ "Content-Type":"application/json", "X-User-Id":"demo-visitor", "X-Roles":role },
+      body: JSON.stringify({ message:q })
+    });
+    const d = await r.json();
+    if (!r.ok) { $("answer").textContent = "—"; $("err").textContent = JSON.stringify(d.detail||d,null,2); return; }
+    $("answer").className = "answer";
+    $("answer").textContent = d.answer;
+    const b = $("badges");
+    b.appendChild(badge("Answered as: " + role));
+    b.appendChild(badge(d.llm_mode === "endpoint" ? "Live AI" : "Offline mode", d.llm_mode==="endpoint"?"ok":"warn"));
+    b.appendChild(badge("Sources consulted: " + d.context_items.length));
+    showContext(d.context_items);
+  } catch(e) {
+    $("answer").textContent = "—"; $("err").textContent = String(e);
+  } finally {
+    $("ask").disabled = false; $("askLabel").textContent = "Ask the Service Expert";
+  }
+}
+
+function showContext(items){
+  const box = $("ctx"); box.innerHTML = "";
+  if (!items.length) { box.innerHTML = "<p style='color:var(--mut)'>No sources were permitted for this question and role.</p>"; }
+  else {
+    const t = document.createElement("table");
+    t.innerHTML = "<tr><th>Type</th><th>Status</th><th>Version</th><th>Reference</th></tr>";
+    items.forEach(i=>{
+      const fresh = (i.sha_status !== "historical");
+      t.innerHTML += `<tr><td>${i.category}</td><td>${i.verification_status}</td>
+        <td><span class="badge ${fresh?'ok':'warn'}">${fresh?'current':'older revision'}</span></td>
+        <td class="mono">${i.knowledge_id}</td></tr>`;
+    });
+    box.appendChild(t);
+  }
+  $("ctxDetails").style.display = "block";
+}
+
+async function ingest(){
+  $("ierr").textContent = ""; $("inote").style.display = "none";
+  if (!$("icontent").value.trim() || !$("isource").value.trim()) {
+    $("ierr").textContent = "Please add both the fact and its source."; return;
+  }
+  $("ingest").disabled = true;
+  try {
+    const r = await fetch(`/service-experts/${encodeURIComponent(iid)}/ingest`, {
+      method:"POST",
+      headers:{ "Content-Type":"application/json", "X-User-Id":"demo-visitor", "X-Roles":role },
+      body: JSON.stringify({ category:$("icat").value, verification_status:"VERIFIED",
+                             content:$("icontent").value, source:$("isource").value })
+    });
+    const d = await r.json();
+    if (!r.ok) { $("ierr").textContent = JSON.stringify(d.detail||d,null,2); return; }
+    $("inote").style.display = "block";
+    $("inote").textContent = "Saved. Now ask a new question above — try: \"" + $("icontent").value.slice(0,60) + "\"";
+    $("icontent").value = ""; $("isource").value = "";
+  } catch(e) { $("ierr").textContent = String(e); }
+  finally { $("ingest").disabled = false; }
+}
+
+$("ask").addEventListener("click", ask);
+$("q").addEventListener("keydown", e=>{ if (e.key==="Enter" && (e.ctrlKey||e.metaKey)) ask(); });
+$("ingest").addEventListener("click", ingest);
+
+renderChips();
+loadStatus();
+</script>
+</body>
+</html>

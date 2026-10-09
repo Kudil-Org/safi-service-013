@@ -79,8 +79,25 @@ def create_app(db_path=None, root_dir=None, templates_dir=None, llm=None):
     def ui_root():
         return HTMLResponse((WEB_DIR / "index.html").read_text(encoding="utf-8"))
 
+    @app.get("/demo", include_in_schema=False)
+    def ui_demo():
+        return HTMLResponse((WEB_DIR / "tester.html").read_text(encoding="utf-8"))
+
     @app.get("/ui/instances", include_in_schema=False)
     def ui_instances():
         return {"instances": [row["id"] for row in root.store.list_instances()]}
+
+    @app.get("/ui/status", include_in_schema=False)
+    def ui_status():
+        from safi.llm import LLMClient
+
+        llm = LLMClient()
+        return {
+            "llm_mode": "endpoint" if llm.configured else "extractive",
+            "llm_model": llm.model if llm.configured else None,
+            "endpoint_configured": llm.configured,
+            "service_version": config.SERVICE_VERSION,
+            "instances": len(root.store.list_instances()),
+        }
 
     return app
