@@ -1,0 +1,111 @@
+# Template 001 — OpenAPI Service Template
+# SAFI Root Service Expert (Service 013)
+# Machine-readable Service Expert template. Three field classes:
+#   required   — must be present and non-empty to instantiate
+#   conditional — type-checked when supplied (applicability depends on the Service)
+#   growing    — optional, appended over time as verified experience accumulates
+template_id: openapi-service
+version: "1.0.0"
+name: OpenAPI Service Template
+description: >
+  First mandatory Service Expert Template for every Safi Service. A Service
+  instantiated from this template is bound to a SOW, an openapi.yaml, a Git
+  repository/branch/SHA, acceptance tests and an RBAC role set, and grows
+  verified experience with full provenance.
+
+sections:
+  required:
+    - key: service.id
+      type: string
+      description: Unique Service identifier (e.g. service-013)
+    - key: service.name
+      type: string
+      description: Human-readable Service name (e.g. API Gateway)
+    - key: service.purpose
+      type: string
+      description: Purpose/objective of the Service
+    - key: sow.id
+      type: string
+      description: SOW identity (e.g. SOW-013)
+    - key: sow.location
+      type: string
+      description: Location of the SOW document (path relative to repo or Service 013 root)
+    - key: git.repo
+      type: string
+      description: Bound Git repository (path)
+    - key: git.branch
+      type: string
+      description: Bound Git branch
+    - key: git.current_sha
+      type: string
+      description: Current/base Git SHA for the bound repository
+    - key: api.openapi
+      type: string
+      description: Location of openapi.yaml (relative to the repository by convention)
+    - key: api.implementation
+      type: string
+      description: Implementation entrypoint of the Service
+    - key: api.operations
+      type: list
+      description: Interfaces/operations (operationIds or paths) covered by the Service
+    - key: invariants
+      type: list
+      description: Contract invariants the implementation must uphold
+    - key: expert.roles
+      type: list
+      description: RBAC roles permitted to consume this Service Expert (standard vocabulary only)
+    - key: acceptance_tests
+      type: list
+      description: Acceptance/contract test references for the Service
+    - key: out_of_scope
+      type: list
+      description: Explicitly out-of-scope items for the Service
+
+  conditional:
+    - key: data_store
+      type: [object, string, list]
+      description: Data store used (applicable when the Service persists state)
+    - key: external_dependencies
+      type: [list, object]
+      description: External dependencies (applicable when the Service calls out)
+    - key: deployment_target
+      type: [string, object]
+      description: Deployment target (applicable when the Service is deployed)
+    - key: rollback
+      type: [string, object]
+      description: Rollback plan (applicable when the Service is deployed)
+    - key: cost_controls
+      type: [object, string]
+      description: Cost controls (applicable for metered or LLM-backed Services)
+    - key: security_sensitive_resources
+      type: [list, object]
+      description: Security-sensitive resources handled by the Service
+    - key: background_jobs
+      type: [list, object]
+      description: Background jobs (applicable when the Service runs async work)
+
+  growing:
+    - key: verified_rca_findings
+      type: list
+      description: Verified RCA findings learned after instantiation
+    - key: accepted_fixes
+      type: list
+      description: Accepted fixes learned after instantiation
+    - key: failed_approaches
+      type: list
+      description: Failed approaches recorded to avoid repeating them
+    - key: human_corrections
+      type: list
+      description: Human corrections applied to the expert
+    - key: known_traps
+      type: list
+      description: Known traps discovered during development
+    - key: user_help_knowledge
+      type: list
+      description: Verified user Help knowledge learned through Chat
+    - key: release_results
+      type: list
+      description: Verified release/test results
+    - key: verified_examples
+      type: list
+      description: Verified usage examples

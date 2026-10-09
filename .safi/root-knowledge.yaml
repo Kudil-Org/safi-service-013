@@ -1,0 +1,99 @@
+# Root knowledge — reusable Safi-wide rules held by the Root Service Expert.
+# Seeded into the __root__ namespace at startup; visible to every role.
+items:
+  - id: root-rule-openapi-mandate
+    category: root rule
+    verification_status: AUTHORITATIVE
+    content: >
+      MANDATORY RULE FOR ALL SAFI SERVICES: every Safi Service shall have an
+      openapi.yaml plus a running implementation conforming to that
+      openapi.yaml. The OpenAPI specification is part of the Service contract,
+      not post-hoc documentation. This applies to internal Safi services as
+      well as externally consumed services.
+    source: Service 013 SOW section 6
+
+  - id: root-rule-provenance
+    category: root rule
+    verification_status: AUTHORITATIVE
+    content: >
+      STANDARD PROVENANCE RULE: every learned knowledge item retains
+      knowledge_id, service_expert_id, repo, branch, observed_at_sha,
+      category, content, source, verification_status, allowed_roles and
+      created_at. Ingest without provenance is rejected.
+    source: Service 013 SOW sections 14 and 17
+
+  - id: root-rule-git-sha
+    category: root rule
+    verification_status: AUTHORITATIVE
+    content: >
+      STANDARD GIT/SHA RULE: knowledge is anchored to the repo/branch/SHA
+      where it was learned. Current Git state outranks historical memory. A
+      fact learned at SHA-A shall not automatically be represented as current
+      truth at SHA-B when the relevant code has changed; it is marked
+      historical and the current Git state is stated alongside it.
+    source: Service 013 SOW section 16
+
+  - id: root-rule-knowledge-authority
+    category: root rule
+    verification_status: AUTHORITATIVE
+    content: >
+      KNOWLEDGE AUTHORITY RULE: AUTHORITATIVE material is the SOW,
+      openapi.yaml, acceptance tests and current Git state. VERIFIED
+      EXPERIENCE is accepted RCA findings, accepted fixes, verified test
+      outcomes and approved corrections. UNVERIFIED EXPERIENCE is hypotheses,
+      observations and suggestions. Unverified material shall not silently
+      override authoritative material; it is labelled as unverified.
+    source: Service 013 SOW section 15
+
+  - id: root-rule-chat-assembly
+    category: root rule
+    verification_status: AUTHORITATIVE
+    content: >
+      STANDARD CHAT/CONTEXT ASSEMBLY RULE: one Chat operation serves all
+      roles. Flow: authenticate caller, resolve roles, resolve Service Expert
+      instance, load only role-permitted context, add the current chat
+      message, start a fresh micro-session, return the answer. Security
+      filtering happens BEFORE model context assembly, not after the model
+      produces an answer. There is no separate Help application; User Help is
+      the same Chat with User-role context.
+    source: Service 013 SOW sections 11 and 18
+
+  - id: root-rule-roles
+    category: root rule
+    verification_status: AUTHORITATIVE
+    content: >
+      STANDARD ROLE VOCABULARY: User, Developer, Tester, RCA, Dispatcher,
+      Fixer. The Root Expert shall not create person-specific roles. User
+      sees public/user-visible API behaviour, how-to information, supported
+      workflows, examples and known user-visible limitations. Developer also
+      sees repo architecture, implementation location, Git/SHA history, tests
+      and technical decisions. RCA sees repo structure, logs/failures,
+      previous verified RCA findings and read-only diagnostic context. Fixer
+      sees relevant RCA, source context, previous accepted fixes, protected
+      tests and permitted write boundaries.
+    source: Service 013 SOW sections 12 and 13
+
+  - id: root-rule-learning
+    category: root rule
+    verification_status: AUTHORITATIVE
+    content: >
+      STANDARD EXPERT LEARNING RULE: the Expert accepts verified experience
+      through the ingest feed with provenance and verification status. Each
+      Service Expert instance is a logically isolated namespace; knowledge
+      must not leak into another Service Expert. A newly verified fact must
+      be usable in a fresh Chat micro-session without modifying any prompt or
+      code. Templates, instances and verified knowledge persist across
+      restarts.
+    source: Service 013 SOW sections 10, 22, 23 and 14
+
+  - id: root-rule-instantiation
+    category: root rule
+    verification_status: AUTHORITATIVE
+    content: >
+      STANDARD INSTANTIATION RULE: a Service Expert is instantiated from a
+      Root template plus a service manifest (.safi/service-expert.yaml).
+      Missing required template fields are rejected with an explicit
+      missing-field error; an incomplete Service Expert is never silently
+      accepted. The manifest identifies scope only; the expert intelligence
+      lives in the provenance store.
+    source: Service 013 SOW sections 7, 8, 10 and 24

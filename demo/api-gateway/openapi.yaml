@@ -1,0 +1,184 @@
+openapi: 3.0.3
+info:
+  title: Safi API Gateway
+  version: 1.0.0
+  description: Reservation gateway — the single documented entry point for reservation workflows.
+servers:
+  - url: http://127.0.0.1:8100
+paths:
+  /reservations:
+    get:
+      operationId: listReservations
+      summary: List reservations
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 50
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [CONFIRMED, CANCELLED]
+      responses:
+        "200":
+          description: List of reservations
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Reservation"
+    post:
+      operationId: createReservation
+      summary: Create a reservation
+      parameters:
+        - name: X-Request-Id
+          in: header
+          required: false
+          description: Tracing header. Gateway policy may reject requests without it.
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReservationCreate"
+            example:
+              reservationId: "RES-1001"
+              guestName: "Amina Rahman"
+              roomType: "DELUXE"
+              checkIn: "2026-11-02"
+              checkOut: "2026-11-05"
+      responses:
+        "201":
+          description: Reservation created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Reservation"
+        "400":
+          description: Invalid request (e.g. rejected by gateway policy)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "409":
+          description: Reservation id already exists
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /reservations/{reservationId}:
+    get:
+      operationId: getReservation
+      summary: Fetch one reservation
+      parameters:
+        - name: reservationId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Reservation found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Reservation"
+        "404":
+          description: Reservation not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    delete:
+      operationId: cancelReservation
+      summary: Cancel a reservation
+      parameters:
+        - name: reservationId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Reservation cancelled
+        "404":
+          description: Reservation not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /health:
+    get:
+      operationId: healthCheck
+      summary: Gateway liveness
+      responses:
+        "200":
+          description: Gateway is up
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: up
+                  service:
+                    type: string
+                    example: api-gateway
+components:
+  schemas:
+    ReservationCreate:
+      type: object
+      required: [reservationId, guestName, roomType, checkIn, checkOut]
+      properties:
+        reservationId:
+          type: string
+          example: "RES-1001"
+        guestName:
+          type: string
+          example: "Amina Rahman"
+        roomType:
+          type: string
+          enum: [STANDARD, DELUXE, SUITE]
+          example: DELUXE
+        checkIn:
+          type: string
+          format: date
+          example: "2026-11-02"
+        checkOut:
+          type: string
+          format: date
+          example: "2026-11-05"
+    Reservation:
+      type: object
+      required: [reservationId, guestName, roomType, checkIn, checkOut, status]
+      properties:
+        reservationId:
+          type: string
+        guestName:
+          type: string
+        roomType:
+          type: string
+          enum: [STANDARD, DELUXE, SUITE]
+        checkIn:
+          type: string
+          format: date
+        checkOut:
+          type: string
+          format: date
+        status:
+          type: string
+          enum: [CONFIRMED, CANCELLED]
+    Error:
+      type: object
+      required: [detail]
+      properties:
+        detail:
+          type: string

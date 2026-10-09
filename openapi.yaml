@@ -1,0 +1,505 @@
+openapi: 3.0.3
+info:
+  title: SAFI Root Service Expert API
+  version: 013.1.0
+  description: >
+    Service 013 — Root Service Expert. Instantiates scoped Service Expert
+    instances from Root templates, accepts provenance-tagged knowledge
+    through a feed interface, and serves RBAC-sensitive Chat over one
+    interface whose available context is determined by the caller's existing
+    RBAC roles. This contract is part of the Service, not documentation.
+servers:
+  - url: http://127.0.0.1:8013
+    description: Local demonstration server
+tags:
+  - name: Service Experts
+    description: Instantiate, inspect and chat with Service Expert instances
+  - name: Knowledge
+    description: Provenance-tagged knowledge feed
+  - name: Operations
+    description: Health and contract
+paths:
+  /health:
+    get:
+      tags: [Operations]
+      operationId: health
+      summary: Service liveness and configuration
+      responses:
+        "200":
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+  /service-experts:
+    post:
+      tags: [Service Experts]
+      operationId: instantiateServiceExpert
+      summary: Instantiate one logical Service Expert instance from a Root template
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InstantiateRequest"
+      responses:
+        "201":
+          description: Service Expert instance created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InstantiateResponse"
+        "400":
+          description: Unknown or invalid template / unreadable material
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Instance already exists
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: Missing required template fields or invalid repository
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /service-experts/{id}:
+    get:
+      tags: [Service Experts]
+      operationId: getServiceExpert
+      summary: Get a Service Expert instance with role-filtered knowledge
+      parameters:
+        - $ref: "#/components/parameters/ExpertId"
+        - $ref: "#/components/parameters/XRoles"
+        - $ref: "#/components/parameters/XUserId"
+      responses:
+        "200":
+          description: Service Expert instance detail; knowledge is included only
+            for roles requested in X-Roles and permitted by the instance
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InstanceResponse"
+        "403":
+          description: Requested roles are not permitted for this instance
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Unknown Service Expert instance
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /service-experts/{id}/ingest:
+    post:
+      tags: [Knowledge]
+      operationId: ingestKnowledge
+      summary: Feed new Service knowledge with provenance and verification status
+      parameters:
+        - $ref: "#/components/parameters/ExpertId"
+        - $ref: "#/components/parameters/XUserId"
+        - $ref: "#/components/parameters/XRoles"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/IngestRequest"
+      responses:
+        "201":
+          description: Knowledge item stored with provenance
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/KnowledgeItem"
+        "401":
+          description: Missing caller identity
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: No permitted role for this instance
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Unknown Service Expert instance
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: Unsupported category/status/roles or missing provenance
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /service-experts/{id}/chat:
+    post:
+      tags: [Service Experts]
+      operationId: chatWithServiceExpert
+      summary: RBAC-sensitive Chat — one interface for all roles
+      description: >
+        Authenticate caller, resolve roles, resolve the Service Expert
+        instance, load only role-permitted context, add the current chat
+        message, start a fresh micro-session and return the answer. Security
+        filtering happens before model context assembly.
+      parameters:
+        - $ref: "#/components/parameters/ExpertId"
+        - $ref: "#/components/parameters/XUserId"
+        - $ref: "#/components/parameters/XRoles"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChatRequest"
+      responses:
+        "200":
+          description: Answer from a fresh micro-session over role-filtered context
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChatResponse"
+        "401":
+          description: Missing caller identity
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: No permitted role for this instance
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Unknown Service Expert instance
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: Empty chat message
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+components:
+  parameters:
+    ExpertId:
+      name: id
+      in: path
+      required: true
+      description: Service Expert instance id
+      schema:
+        type: string
+    XUserId:
+      name: X-User-Id
+      in: header
+      required: false
+      description: Existing authenticated caller identity (no new identity system)
+      schema:
+        type: string
+    XRoles:
+      name: X-Roles
+      in: header
+      required: false
+      description: Existing RBAC roles, comma separated (User, Developer, Tester, RCA, Dispatcher, Fixer)
+      schema:
+        type: string
+  schemas:
+    ErrorResponse:
+      type: object
+      required: [detail]
+      properties:
+        detail:
+          description: Machine-readable error detail object
+          type: object
+    HealthResponse:
+      type: object
+      required: [status, service, version, llm_configured, db]
+      properties:
+        status:
+          type: string
+        service:
+          type: string
+        version:
+          type: string
+        llm_configured:
+          type: boolean
+        db:
+          type: string
+    InstantiateRequest:
+      type: object
+      required: [template, manifest]
+      properties:
+        template:
+          type: string
+          description: Root template id (e.g. openapi-service)
+        manifest:
+          type: object
+          description: Service Expert manifest per the template (see .safi/service-expert.yaml)
+        instance_id:
+          type: string
+          description: Optional explicit instance id; defaults to <service.id>-expert
+        sow:
+          type: object
+          description: Optional SOW identity/location override
+        repo:
+          type: string
+          description: Optional git.repo override
+        branch:
+          type: string
+          description: Optional git.branch override
+        sha:
+          type: string
+          description: Optional git.current_sha override
+        openapi:
+          type: string
+          description: Optional api.openapi override
+        acceptance_tests:
+          type: array
+          items:
+            type: string
+          description: Optional acceptance_tests override
+    InstantiateResponse:
+      type: object
+      required: [instance_id, template, service, git, manifest, seeded_knowledge, created_at]
+      properties:
+        instance_id:
+          type: string
+        template:
+          type: string
+        service:
+          type: object
+        git:
+          $ref: "#/components/schemas/GitState"
+        manifest:
+          type: object
+        seeded_knowledge:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+    GitState:
+      type: object
+      required: [repo, branch, sha, dirty, commits, files]
+      properties:
+        repo:
+          type: string
+        branch:
+          type: string
+        sha:
+          type: string
+        manifest_sha:
+          type: string
+          nullable: true
+        sha_matches_manifest:
+          type: boolean
+          nullable: true
+        dirty:
+          type: boolean
+        commits:
+          type: array
+          items:
+            type: object
+        files:
+          type: array
+          items:
+            type: string
+    IngestRequest:
+      type: object
+      required: [category, content, source, verification_status]
+      properties:
+        category:
+          type: string
+          enum:
+            - SOW
+            - OpenAPI
+            - repo training
+            - acceptance test result
+            - RCA finding
+            - fix result
+            - human correction
+            - release result
+            - Help correction
+        content:
+          type: string
+          minLength: 1
+        source:
+          type: string
+          minLength: 1
+          description: Provenance source (RCA id, test run, file, ticket, ...)
+        verification_status:
+          type: string
+          enum: [AUTHORITATIVE, VERIFIED, UNVERIFIED]
+        repo:
+          type: string
+          nullable: true
+        branch:
+          type: string
+          nullable: true
+        observed_at_sha:
+          type: string
+          nullable: true
+        allowed_roles:
+          type: array
+          items:
+            type: string
+          nullable: true
+    KnowledgeItem:
+      type: object
+      required:
+        - knowledge_id
+        - service_expert_id
+        - category
+        - content
+        - source
+        - verification_status
+        - allowed_roles
+        - created_at
+      properties:
+        knowledge_id:
+          type: string
+        service_expert_id:
+          type: string
+        category:
+          type: string
+        content:
+          type: string
+        source:
+          type: string
+        verification_status:
+          type: string
+          enum: [AUTHORITATIVE, VERIFIED, UNVERIFIED]
+        allowed_roles:
+          type: array
+          items:
+            type: string
+        repo:
+          type: string
+          nullable: true
+        branch:
+          type: string
+          nullable: true
+        observed_at_sha:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        sha_status:
+          type: string
+          nullable: true
+    ChatRequest:
+      type: object
+      required: [message]
+      properties:
+        message:
+          type: string
+          minLength: 1
+    ChatResponse:
+      type: object
+      required:
+        - session_id
+        - instance_id
+        - question
+        - answer
+        - roles
+        - permitted_categories
+        - context_items
+        - llm_mode
+        - endpoint_configured
+        - created_at
+      properties:
+        session_id:
+          type: string
+        instance_id:
+          type: string
+        question:
+          type: string
+        answer:
+          type: string
+        roles:
+          type: array
+          items:
+            type: string
+        permitted_categories:
+          type: array
+          items:
+            type: string
+        context_items:
+          type: array
+          items:
+            $ref: "#/components/schemas/ContextRef"
+        llm_mode:
+          type: string
+          enum: [endpoint, extractive]
+        endpoint_configured:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+    ContextRef:
+      type: object
+      required: [knowledge_id, category, verification_status]
+      properties:
+        knowledge_id:
+          type: string
+        category:
+          type: string
+        verification_status:
+          type: string
+        observed_at_sha:
+          type: string
+          nullable: true
+        sha_status:
+          type: string
+          nullable: true
+    InstanceResponse:
+      type: object
+      required:
+        - instance_id
+        - template
+        - service
+        - manifest
+        - git
+        - roles
+        - knowledge_counts
+        - knowledge
+        - created_at
+      properties:
+        instance_id:
+          type: string
+        template:
+          type: string
+        service:
+          type: object
+        manifest:
+          type: object
+        git:
+          $ref: "#/components/schemas/GitState"
+        roles:
+          type: array
+          items:
+            type: string
+        knowledge_counts:
+          type: object
+          additionalProperties:
+            type: integer
+        knowledge:
+          type: array
+          items:
+            $ref: "#/components/schemas/KnowledgeItem"
+        created_at:
+          type: string
+          format: date-time

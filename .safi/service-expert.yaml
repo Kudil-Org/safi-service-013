@@ -1,0 +1,65 @@
+# Service Expert manifest — API Gateway demonstration instance
+# Scope identifier only; the expert intelligence lives in the provenance store.
+service:
+  id: service-013
+  name: API Gateway
+  purpose: >
+    Single documented entry point for reservation workflows; conforms to its
+    openapi.yaml contract.
+sow:
+  id: SOW-013
+  location: demo/api-gateway/SOW.md
+git:
+  repo: demo/api-gateway
+  branch: main
+  current_sha: 93015e4356ca5929aecde247c7402d4af7e3d3ea
+api:
+  openapi: openapi.yaml
+  implementation: src/gateway.py
+  operations:
+    - listReservations
+    - createReservation
+    - getReservation
+    - cancelReservation
+    - healthCheck
+invariants:
+  - No undocumented endpoints are exposed.
+  - Every response conforms to openapi.yaml status codes and schemas.
+  - Reservation ids are unique; duplicate creation is rejected with 409.
+  - Failures always carry a machine-readable error body.
+expert:
+  template: openapi-service
+  instance_id: api-gateway-expert
+  roles:
+    - User
+    - Developer
+    - Tester
+    - RCA
+    - Dispatcher
+    - Fixer
+acceptance_tests:
+  - demo/api-gateway/tests/test_contract.py
+out_of_scope:
+  - Payment processing
+  - Authentication / identity management
+  - Multi-tenant rate limiting
+  - Any endpoint not present in openapi.yaml
+# Conditional fields (applicable to this Service)
+data_store:
+  type: in-memory
+  notes: Reservations are held in process memory for the demonstration.
+external_dependencies:
+  - FastAPI
+deployment_target: local demonstration server (port 8100)
+rollback: Redeploy previous container tag; no data migration.
+security_sensitive_resources: []
+background_jobs: []
+# Growing fields (accumulated over time through ingest)
+verified_rca_findings: []
+accepted_fixes: []
+failed_approaches: []
+human_corrections: []
+known_traps: []
+user_help_knowledge: []
+release_results: []
+verified_examples: []

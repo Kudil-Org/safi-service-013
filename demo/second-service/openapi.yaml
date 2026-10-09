@@ -1,0 +1,44 @@
+openapi: 3.0.3
+info:
+  title: Inventory Service
+  version: 0.2.0
+paths:
+  /inventory:
+    get:
+      operationId: listInventory
+      summary: List stock items
+      responses:
+        "200":
+          description: Stock items
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/StockItem"
+  /health:
+    get:
+      operationId: healthCheck
+      summary: Liveness
+      responses:
+        "200":
+          description: Up
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+components:
+  schemas:
+    StockItem:
+      type: object
+      required: [sku, name, qty]
+      properties:
+        sku:
+          type: string
+        name:
+          type: string
+        qty:
+          type: integer
