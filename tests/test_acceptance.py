@@ -569,15 +569,40 @@ def test_chat_ui_is_served_and_shares_the_one_endpoint(client, gw):
     assert "text/html" in demo.headers["content-type"]
     assert "/chat" in demo.text
 
+    app = client.get("/app")
+    assert app.status_code == 200
+    assert "text/html" in app.headers["content-type"]
+    for token in ("Dashboard", "renderChat", "/service-experts"):
+        assert token in app.text
+
     instances = client.get("/ui/instances")
     assert instances.status_code == 200
     assert iid in instances.json()["instances"]
 
-    status = client.get("/ui/status")
-    assert status.status_code == 200
-    assert status.json()["llm_mode"] in ("endpoint", "extractive")
+    overview = client.get("/ui/overview")
+    assert overview.status_code == 200
+    assert "endpoint_configured" in overview.json()
 
-    ui_paths = {"/", "/demo", "/ui/instances", "/ui/status"}
+    experts = client.get("/ui/experts")
+    assert experts.status_code == 200
+    rows = {e["instance_id"]: e for e in experts.json()["experts"]}
+    assert iid in rows
+    assert rows[iid]["git"]["sha"]
+
+    templates = client.get("/ui/templates")
+    assert templates.status_code == 200
+    assert any(t["template_id"] == "openapi-service" for t in templates.json()["templates"])
+
+    demo_manifest = client.get("/ui/manifest/demo")
+    assert demo_manifest.status_code == 200
+    assert demo_manifest.json()["manifest"]["service"]["id"] == "service-013"
+
+    ui_paths = {"/", "/demo", "/app", "/ui/instances", "/ui/status",
+                "/ui/overview", "/ui/templates", "/ui/manifest/demo", "/ui/experts"}
     served = client.get("/openapi.json").json()["paths"]
     for p in ui_paths:
         assert p not in served
+    for p in ("/service-experts", "/service-experts/{id}/chat",
+              "/service-experts/{id}/ingest", "/service-experts/{id}",
+              "/health"):
+        assert p in served

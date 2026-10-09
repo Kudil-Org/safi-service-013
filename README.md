@@ -43,6 +43,10 @@ instance, set `X-User-Id` + roles, ask, and inspect the RBAC-filtered context
 that was loaded). It is a thin page over the **one** Chat endpoint — not a
 separate Help application. Swagger UI remains at `/docs`.
 
+For the full **product console**, open <http://127.0.0.1:8013/app> — a modern
+UI with a Dashboard, RBAC Chat, a provenance Knowledge browser, Service Expert
+management (inspect + instantiate), and an API/Template reference.
+
 For a **no-technical-knowledge demo**, open <http://127.0.0.1:8013/demo> — a
 guided page where the tester picks a persona (End user / Developer / Tester),
 clicks a plain-English example, and sees the answer plus which sources the
@@ -317,6 +321,7 @@ safi/
   chat/            role-filtered context assembly + answer generation
   web/index.html   advanced console page (/)
   web/tester.html  guided, no-technical-knowledge demo (/demo)
+  web/app.html     product console: dashboard, chat, knowledge, experts (/app)
   storage/         SQLite provenance store (instances, knowledge, sessions)
   llm.py           one configured LLM endpoint (extractive fallback)
   gitinfo.py       Git CLI: repo/branch/SHA/log/files

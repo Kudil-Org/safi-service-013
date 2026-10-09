@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>SAFI Service 013 — Product Console</title>
+<style>
+  :root {
+    --bg:#0b0e14; --bg2:#0f1520; --panel:#141a26; --panel2:#1a2233; --panel3:#202a40;
+    --line:#232e45; --line2:#2c3a57;
+    --ink:#e8edf7; --mut:#8fa0bd; --dim:#5d6d8c;
+    --acc:#4f8cff; --acc2:#7c5cff; --grad:linear-gradient(135deg,#4f8cff,#7c5cff);
+    --ok:#3ddc97; --ok-soft:rgba(61,220,151,.14);
+    --warn:#ffb020; --bad:#ff5f66; --bad-soft:rgba(255,95,102,.12);
+    --radius:14px; --shadow:0 10px 34px rgba(0,0,0,.35);
+  }
+  * { box-sizing:border-box; }
+  html,body { height:100%; }
+  body { margin:0; background:var(--bg); color:var(--ink);
+         font:14.5px/1.55 "Segoe UI",system-ui,sans-serif; overflow:hidden; }
+  a { color:var(--acc); text-decoration:none; }
+  .layout { display:grid; grid-template-columns:232px 1fr; height:100vh; }
+
+  /* ---------------- sidebar ---------------- */
+  .side { background:var(--bg2); border-right:1px solid var(--line); display:flex;
+          flex-direction:column; padding:18px 12px; }
+  .brand { display:flex; align-items:center; gap:10px; padding:4px 8px 18px;
+           border-bottom:1px solid var(--line); margin-bottom:14px; }
+  .logo { width:36px; height:36px; border-radius:10px; background:var(--grad);
+          display:grid; place-items:center; box-shadow:var(--shadow); }
+  .brand b { display:block; font-size:14.5px; letter-spacing:.02em; }
+  .brand span { display:block; font-size:11px; color:var(--mut); }
+  .nav { display:flex; flex-direction:column; gap:4px; flex:1; }
+  .nav button { display:flex; align-items:center; gap:11px; width:100%; padding:10px 12px;
+                background:transparent; border:0; border-radius:10px; color:var(--mut);
+                font:inherit; font-size:14px; cursor:pointer; text-align:left; }
+  .nav button:hover { background:var(--panel); color:var(--ink); }
+  .nav button.on { background:var(--panel); color:var(--ink); font-weight:600; }
+  .nav button.on svg { color:var(--acc); }
+  .nav svg { width:18px; height:18px; flex:none; }
+  .nav .cnt { margin-left:auto; font-size:11px; background:var(--panel3); color:var(--mut);
+              padding:1px 8px; border-radius:999px; }
+  .sidefoot { border-top:1px solid var(--line); padding:12px 8px 0; }
+  .sidefoot .row { display:flex; gap:8px; }
+  .sidefoot .row a { flex:1; text-align:center; font-size:12px; padding:7px 0;
+                     border:1px solid var(--line2); border-radius:9px; color:var(--mut); }
+  .sidefoot .row a:hover { color:var(--ink); border-color:var(--acc); }
+
+  /* ---------------- topbar ---------------- */
+  .main { display:flex; flex-direction:column; min-height:0; }
+  .top { display:flex; align-items:center; gap:16px; padding:0 26px; height:60px;
+         border-bottom:1px solid var(--line); flex:none; }
+  .top h1 { font-size:17px; margin:0; font-weight:650; letter-spacing:-.01em; }
+  .top .crumb { color:var(--dim); font-size:13px; }
+  .top .spacer { flex:1; }
+  .pill { display:inline-flex; align-items:center; gap:7px; font-size:12px;
+          padding:5px 12px; border-radius:999px; border:1px solid var(--line2);
+          color:var(--mut); background:var(--panel); }
+  .pill .dot { width:8px; height:8px; border-radius:50%; background:var(--dim); }
+  .pill.ok { color:var(--ok); }
+  .pill.ok .dot { background:var(--ok); box-shadow:0 0 0 4px var(--ok-soft); }
+  .pill.warn { color:var(--warn); border-color:#4a3a1a; }
+  .user { display:flex; align-items:center; gap:9px; }
+  .avatar { width:32px; height:32px; border-radius:50%; background:var(--grad);
+            display:grid; place-items:center; font-size:13px; font-weight:700; color:#fff; }
+  .user b { display:block; font-size:12.5px; }
+  .user span { display:block; font-size:11px; color:var(--mut); }
+
+  /* ---------------- content ---------------- */
+  .content { flex:1; overflow:auto; padding:26px; }
+  .grid { display:grid; gap:18px; }
+  .cols { display:grid; gap:18px; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); }
+  .card { background:var(--panel); border:1px solid var(--line); border-radius:var(--radius);
+          padding:20px; }
+  .card h3 { margin:0 0 4px; font-size:15px; }
+  .card .sub { color:var(--mut); font-size:13px; margin:0 0 16px; }
+  .stat { display:flex; flex-direction:column; gap:10px; }
+  .stat big { font-size:32px; font-weight:700; letter-spacing:-.02em; }
+  .stat span { color:var(--mut); font-size:12.5px; }
+  .stat .ic { width:40px; height:40px; border-radius:11px; display:grid; place-items:center;
+              background:var(--panel3); }
+  .stat .ic svg { width:20px; height:20px; color:var(--acc); }
+  .row { display:flex; align-items:center; gap:8px; }
+  .stack { display:flex; flex-direction:column; gap:12px; }
+  label { display:block; font-size:12px; color:var(--mut); margin:10px 0 5px; }
+  input, select, textarea { width:100%; background:var(--bg2); color:var(--ink);
+      border:1px solid var(--line2); border-radius:9px; padding:9px 12px; font:inherit; }
+  input:focus, select:focus, textarea:focus { outline:none; border-color:var(--acc);
+      box-shadow:0 0 0 3px rgba(79,140,255,.18); }
+  textarea { resize:vertical; font-family:Consolas,monospace; font-size:12.5px; }
+  .btn { display:inline-flex; align-items:center; gap:8px; background:var(--grad); color:#fff;
+         border:0; border-radius:10px; padding:11px 18px; font:inherit; font-weight:600;
+         cursor:pointer; font-size:14px; }
+  .btn.ghost { background:var(--panel3); color:var(--ink); font-weight:500; }
+  .btn.sm { padding:7px 13px; font-size:13px; }
+  .btn:disabled { opacity:.5; cursor:default; }
+  .btn .spinner { width:13px; height:13px; border:2px solid rgba(255,255,255,.4);
+                  border-top-color:#fff; border-radius:50%; animation:spin .7s linear infinite; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+  .chips { display:flex; flex-wrap:wrap; gap:7px; }
+  .chip { background:var(--panel3); color:var(--mut); border:1px solid var(--line2);
+          border-radius:999px; padding:6px 13px; font-size:12.5px; cursor:pointer; }
+  .chip.on { background:var(--acc); border-color:var(--acc); color:#fff; }
+  .chip:hover { color:var(--ink); }
+  .chips .chip.on:hover { color:#fff; }
+  .tag { display:inline-block; font-size:11px; padding:2px 9px; border-radius:999px;
+         border:1px solid var(--line2); color:var(--mut); }
+  .tag.ok { color:var(--ok); border-color:#1c5a43; background:var(--ok-soft); }
+  .tag.warn { color:var(--warn); border-color:#4a3a1a; }
+  .tag.bad { color:var(--bad); border-color:#5b2626; background:var(--bad-soft); }
+  .tag.acc { color:var(--acc); border-color:#274077; background:rgba(79,140,255,.1); }
+  table { width:100%; border-collapse:collapse; font-size:13px; }
+  th,td { text-align:left; padding:9px 10px; border-bottom:1px solid var(--line);
+          vertical-align:top; }
+  th { color:var(--dim); font-size:11.5px; text-transform:uppercase; letter-spacing:.05em; }
+  tr:hover td { background:rgba(255,255,255,.015); }
+  .mono { font-family:Consolas,monospace; font-size:12px; color:var(--mut); }
+  .empty { color:var(--dim); text-align:center; padding:34px 10px; font-size:13.5px; }
+  .err { color:var(--bad); font-size:13px; white-space:pre-wrap; margin-top:8px; }
+  .okmsg { color:var(--ok); font-size:13px; margin-top:8px; white-space:pre-wrap; }
+  .answer { white-space:pre-wrap; font-size:15px; line-height:1.7; background:var(--bg2);
+            border:1px solid var(--line); border-radius:11px; padding:16px; min-height:120px; }
+  .answer.empty { color:var(--dim); font-style:italic; }
+  .badges { display:flex; flex-wrap:wrap; gap:8px; margin:14px 0; }
+  .expert { border:1px solid var(--line); border-radius:12px; padding:16px; background:var(--bg2); }
+  .expert .name { font-weight:650; font-size:14.5px; }
+  .expert .purpose { color:var(--mut); font-size:12.5px; margin:3px 0 12px; }
+  .prog { height:7px; border-radius:99px; background:var(--panel3); overflow:hidden; margin-top:14px; }
+  .prog > i { display:block; height:100%; background:var(--grad); border-radius:99px; }
+  .detail { background:var(--bg2); border:1px solid var(--line); border-radius:11px;
+            padding:14px; font-size:13px; }
+  .detail .k { color:var(--dim); }
+  hr.sep { border:0; border-top:1px solid var(--line); margin:18px 0; }
+  details { border:1px solid var(--line); border-radius:11px; background:var(--bg2);
+            padding:12px 16px; margin-top:12px; }
+  summary { cursor:pointer; color:var(--acc); font-weight:600; font-size:13.5px; }
+  .fieldcl { margin:12px 0; }
+  .fieldcl h4 { margin:8px 0 6px; font-size:13.5px; color:var(--mut);
+                text-transform:capitalize; }
+  .modalwrap { position:fixed; inset:0; background:rgba(4,6,10,.66); display:none;
+               align-items:center; justify-content:center; z-index:50; }
+  .modalwrap.show { display:flex; }
+  .modal { width:min(680px,94vw); max-height:88vh; overflow:auto; background:var(--panel);
+           border:1px solid var(--line2); border-radius:16px; padding:22px; box-shadow:var(--shadow); }
+  .modal h2 { margin:0 0 6px; font-size:17px; }
+  .modal .sub { color:var(--mut); margin:0 0 14px; font-size:13px; }
+  .toast { position:fixed; bottom:26px; right:26px; background:var(--panel3); color:var(--ink);
+           border:1px solid var(--line2); padding:12px 18px; border-radius:11px;
+           box-shadow:var(--shadow); font-size:13.5px; opacity:0; transform:translateY(10px);
+           transition:.2s; z-index:60; max-width:420px; }
+  .toast.show { opacity:1; transform:none; }
+  .toast.ok { border-color:#1c5a43; color:var(--ok); }
+  .toast.bad { border-color:#5b2626; color:var(--bad); }
+  .hint { color:var(--dim); font-size:12.5px; }
+  ::-webkit-scrollbar { width:10px; height:10px; }
+  ::-webkit-scrollbar-thumb { background:var(--panel3); border-radius:99px; }
+</style>
+</head>
+<body>
+<div class="layout">
+  <aside class="side">
+    <div class="brand">
+      <div class="logo"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#fff" stroke-width="2.2"><path d="M4 17l6-10 4 6 2-3 4 7"/><circle cx="20" cy="6" r="2" fill="#fff"/></svg></div>
+      <div><b>SAFI Console</b><span>Service 013 · Root Expert</span></div>
+    </div>
+    <div class="nav" id="nav">
+      <button data-view="dash" class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>Dashboard</button>
+      <button data-view="chat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a8 8 0 0 1-8 8H5l-2 2V12a8 8 0 0 1 8-8h2a8 8 0 0 1 8 8z"/></svg>Chat <span class="cnt" id="navChat"></span></button>
+      <button data-view="knowledge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5a2 2 0 0 1 2-2h13v18H6a2 2 0 0 1-2-2z"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>Knowledge <span class="cnt" id="navKnow"></span></button>
+      <button data-view="experts"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6 8-6s8 2 8 6"/></svg>Service Experts <span class="cnt" id="navExp"></span></button>
+      <button data-view="api"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 9l-4 3 4 3M16 9l4 3-4 3M13 6l-2 12"/></svg>API &amp; Template</button>
+    </div>
+    <div class="sidefoot">
+      <div class="row">
+        <a href="/demo">Tester demo</a>
+        <a href="/docs">OpenAPI</a>
+        <a href="/openapi.yaml">YAML</a>
+      </div>
+    </div>
+  </aside>
+
+  <div class="main">
+    <div class="top">
+      <h1 id="pageTitle">Dashboard</h1>
+      <span class="crumb" id="pageCrumb">Overview</span>
+      <div class="spacer"></div>
+      <span class="pill" id="llmPill"><span class="dot"></span><span id="llmText">checking…</span></span>
+      <div class="user">
+        <div class="avatar" id="avatar">A</div>
+        <div><b id="userName">demo-visitor</b><span id="userRoles">User</span></div>
+      </div>
+    </div>
+    <div class="content" id="content">
+      <div class="empty">Loading…</div>
+    </div>
+  </div>
+</div>
+
+<div class="modalwrap" id="modalWrap">
+  <div class="modal" id="modal"></div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============================ state ============================ */
+const ROLES = ["User","Developer","Tester","RCA","Dispatcher","Fixer"];
+const CATEGORIES = ["SOW","OpenAPI","repo training","acceptance test result",
+  "RCA finding","fix result","human correction","release result","Help correction"];
+const STATUSES = ["AUTHORITATIVE","VERIFIED","UNVERIFIED"];
+let state = {
+  user: "demo-visitor",
+  roles: ["User"],
+  instance: null,
+  experts: [],
+  templates: [],
+  overview: {},
+  current: "dash"
+};
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c =>
+  ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const short = s => (s||"").length > 12 ? s.slice(0,12) : s||"—";
+
+function setRoles(list){
+  state.roles = list.filter(r => ROLES.includes(r));
+  if(!state.roles.length) state.roles = ["User"];
+  $("userRoles").textContent = state.roles.join(", ");
+  $("avatar").textContent = state.user.slice(0,1).toUpperCase();
+}
+
+/* ----------------------- api helper ----------------------- */
+async function api(path, opts={}){
+  const headers = Object.assign({
+    "X-User-Id": state.user,
+    "X-Roles": state.roles.join(",")
+  }, opts.headers);
+  if(opts.json !== undefined){
+    headers["Content-Type"] = "application/json";
+    opts.body = JSON.stringify(opts.json);
+  }
+  const r = await fetch(path, Object.assign({headers}, opts));
+  const t = await r.text();
+  let d = {};
+  try { d = t ? JSON.parse(t) : {}; } catch(e){ d = { raw: t }; }
+  if(!r.ok){
+    const msg = d.detail ? (typeof d.detail === "string" ? d.detail : JSON.stringify(d.detail)) : t;
+    throw new Error(msg);
+  }
+  return d;
+}
+
+/* ----------------------- toast ----------------------- */
+let toastTimer;
+function toast(msg, kind=""){
+  const t = $("toast");
+  t.textContent = msg;
+  t.className = "toast show " + kind;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=> t.classList.remove("show"), 4200);
+}
+
+/* ----------------------- navigation ----------------------- */
+const VIEWS = {
+  dash:   ["Dashboard","Overview of the Root Service Expert"],
+  chat:   ["Chat","One interface, filtered before the model"],
+  knowledge:["Knowledge","Provenance store, filtered by your role"],
+  experts:["Service Experts","Instantiate and inspect experts"],
+  api:    ["API & Template","The service contract and Template 001"]
+};
+function nav(view){
+  state.current = view;
+  document.querySelectorAll("#nav button").forEach(b=> b.classList.toggle("on", b.dataset.view===view));
+  $("pageTitle").textContent = VIEWS[view][0];
+  $("pageCrumb").textContent = VIEWS[view][1];
+  $("content").innerHTML = '<div class="empty">Loading…</div>';
+  ({dash:renderDash, chat:renderChat, knowledge:renderKnowledge,
+    experts:renderExperts, api:renderApi})[view]();
+}
+document.querySelectorAll("#nav button").forEach(b=> b.addEventListener("click", ()=> nav(b.dataset.view)));
+
+/* ============================ DASHBOARD ============================ */
+async function renderDash(){
+  try {
+    state.overview = await api("/ui/overview");
+    const body = $("content");
+    body.innerHTML = `
+      <div class="grid">
+        <div class="cols">
+          <div class="card"><div class="row" style="justify-content:space-between">
+            <div class="stat"><span>Service Experts</span><big>${state.overview.instances}</big>
+              <span>isolated namespaces</span></div>
+            <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6 8-6s8 2 8 6"/></svg></div></div>
+            <div class="prog"><i style="width:${Math.min(100,state.overview.instances*18)}%"></i></div>
+          </div>
+          <div class="card"><div class="row" style="justify-content:space-between">
+            <div class="stat"><span>Knowledge items</span><big>${state.overview.knowledge_total}</big>
+              <span>with provenance + verif. status</span></div>
+            <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5a2 2 0 0 1 2-2h13v18H6a2 2 0 0 1-2-2z"/></svg></div></div>
+          </div>
+          <div class="card"><div class="row" style="justify-content:space-between">
+            <div class="stat"><span>Templates</span><big>${state.overview.templates}</big>
+              <span>required · conditional · growing</span></div>
+            <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/></svg></div></div>
+          </div>
+          <div class="card"><div class="row" style="justify-content:space-between">
+            <div class="stat"><span>Answer mode</span><big style="font-size:20px;align-self:center">${
+              state.overview.endpoint_configured ? "Live AI" : "Offline"}</big></div>
+            <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v18M3 12h18"/></svg></div></div>
+          </div>
+        </div>
+        <div class="cols">
+          <div class="card" style="grid-column:span 2">
+            <h3>How it works</h3>
+            <p class="sub">Each Service Expert is a logically isolated expert namespace bound to a real Git repository. Every answer is grounded in role-permitted, provenance-tagged knowledge — never in anything else.</p>
+            <div class="cols">
+              <div class="detail"><b>1 · Instantiate</b><br><span class="k">A manifest is validated against Template 001 (required, conditional, growing fields) and the bound repo is resolved at its live SHA.</span></div>
+              <div class="detail"><b>2 · Ingest with provenance</b><br><span class="k">Verified experience (RCA, fixes, corrections) is stored with repo / branch / SHA / verification status / allowed roles.</span></div>
+              <div class="detail"><b>3 · Chat, filtered first</b><br><span class="k">Identity + roles resolve permitted context <u>before</u> any model assembly. Same expert, different role = different answer surface.</span></div>
+            </div>
+            <div class="row" style="margin-top:18px">
+              <button class="btn" onclick="nav('chat')">Open Chat</button>
+              <button class="btn ghost" onclick="nav('experts')">Manage Experts</button>
+              <button class="btn ghost" onclick="nav('knowledge')">Browse Knowledge</button>
+            </div>
+          </div>
+          <div class="card">
+            <h3>Gateways / endpoints</h3>
+            <p class="sub">The Root Service Expert is itself an OpenAPI service.</p>
+            <table>
+              <tr><th>Route</th><th>Purpose</th></tr>
+              <tr><td class="mono">POST /service-experts</td><td>instantiate</td></tr>
+              <tr><td class="mono">/…/ingest</td><td>feed knowledge</td></tr>
+              <tr><td class="mono">/…/chat</td><td>single UI for all roles</td></tr>
+              <tr><td class="mono">GET /…/{id}</td><td>inspect (role-filtered)</td></tr>
+              <tr><td class="mono">GET /health</td><td>liveness · LLM state</td></tr>
+            </table>
+          </div>
+        </div>
+      </div>`;
+  } catch(e){ showError(e); }
+}
+
+/* ============================ CHAT ============================ */
+function instancePicker(sel){
+  const s = document.createElement("select");
+  s.innerHTML = state.experts.map(x =>
+    `<option value="${esc(x.instance_id)}" ${x.instance_id===state.instance?"selected":""}>${esc(x.service_name)} — ${esc(x.instance_id)}</option>`).join("");
+  s.onchange = ()=> { state.instance = s.value; };
+  return s;
+}
+
+async function renderChat(){
+  const body = $("content");
+  body.innerHTML = `
+    <div class="cols">
+      <div class="card">
+        <h3>Question</h3>
+        <div class="row" style="margin-bottom:4px"><label style="margin:0">Service Expert</label></div>
+        <div id="chatInstance"></div>
+        <div class="row" style="justify-content:space-between;margin-top:14px">
+          <label style="margin:0">Your role(s) — decides the context</label>
+          <a href="/demo" class="hint">try the no-tech guide →</a>
+        </div>
+        <div class="chips" id="roleChips">${ROLES.map(r=>`<button class="chip ${state.roles.includes(r)?"on":""}" data-r="${r}">${r}</button>`).join("")}</div>
+        <div class="chips" id="chatChips" style="margin:14px 0 0"></div>
+        <label>Message</label>
+        <textarea id="q" rows="4" placeholder="Ask in plain language…"></textarea>
+        <div class="row" style="margin-top:12px">
+          <button class="btn" id="askBtn">Ask the Service Expert</button>
+          <button class="btn ghost" id="sampleBtn">Load example</button>
+        </div>
+        <div class="err" id="chatErr"></div>
+      </div>
+      <div class="card" style="grid-column:span 1">
+        <h3>Answer</h3>
+        <div class="badges" id="chatBadges"></div>
+        <div class="answer empty" id="answer">Answers appear here. The expert can only use what your role permits.</div>
+        <details id="srcDetails" style="display:none">
+          <summary>Sources consulted (role-filtered)</summary>
+          <div id="srcTable"></div>
+        </details>
+      </div>
+    </div>`;
+  $("chatInstance").appendChild(instancePicker());
+  document.querySelectorAll("#roleChips .chip").forEach(c=>{
+    c.onclick = ()=> {
+      c.classList.toggle("on");
+      const next = [...document.querySelectorAll("#roleChips .chip.on")].map(x=>x.dataset.r);
+      if(!next.length){ c.classList.add("on"); return; }
+      setRoles(next);
+    };
+  });
+  const EXAMPLES = {
+    "User": ["What endpoints are available?","How do I make a reservation?","Does it need a special header?"],
+    "Developer": ["Where is this implemented and which tests cover it?","What exact SHA are you describing?","How is the request id handled?"],
+    "Tester": ["What should happen on a bad request?","Which contract tests exist?","Any documented limits?"],
+    "RCA": ["What does the verified RCA finding tell us?","Which failures are on record?"],
+    "Dispatcher": ["How do I check the service is healthy?"],
+    "Fixer": ["Where should a fix for a 400 on missing header go?"]
+  };
+  const chipsBox = $("chatChips");
+  function drawChips(){
+    chipsBox.innerHTML = "";
+    (EXAMPLES[state.roles[0]||"User"]||[]).forEach((q,i)=>{
+      const b = document.createElement("button");
+      b.className = "chip"; b.textContent = q;
+      b.onclick = ()=> { $("q").value = q; };
+      chipsBox.appendChild(b);
+    });
+  }
+  drawChips();
+  $("sampleBtn").onclick = ()=>{
+    const ex = EXAMPLES[state.roles[0]||"User"] || [];
+    $("q").value = ex[Math.floor(Math.random()*ex.length)] || "";
+  };
+  $("askBtn").onclick = askChat;
+  $("srcDetails").style.display = "none";
+}
+
+async function askChat(){
+  const iid = state.instance || (state.experts[0] && state.experts[0].instance_id);
+  const q = $("q").value.trim();
+  $("chatErr").textContent = "";
+  if(!iid){ $("chatErr").textContent = "Create a Service Expert first (Experts view)."; return; }
+  if(!q){ $("chatErr").textContent = "Type a question."; return; }
+  $("askBtn").disabled = true;
+  $("askBtn").innerHTML = '<span class="spinner"></span>Thinking…';
+  $("answer").className = "answer empty";
+  $("answer").textContent = "Loading permitted context, then building the answer…";
+  $("srcDetails").style.display = "none";
+  try {
+    const d = await api(`/service-experts/${enc(iid)}/chat`, {json:{message:q}});
+    $("answer").className = "answer";
+    $("answer").textContent = d.answer;
+    const b = $("chatBadges");
+    b.innerHTML = `
+      <span class="tag accent">mode: ${esc(d.llm_mode)}</span>
+      <span class="tag">roles: ${esc(d.roles.join(", "))}</span>
+      <span class="tag">categories: ${esc(d.permitted_categories.join(", "))}</span>
+      <span class="tag mono">session ${esc(short(d.session_id))}</span>`;
+    const st = $("srcTable");
+    st.innerHTML = d.context_items.length ? `
+      <table><tr><th>category</th><th>verification</th><th>SHA</th><th>freshness</th></tr>${
+      d.context_items.map(i=>`
+        <tr><td>${esc(i.category)}</td><td>${esc(i.verification_status)}</td>
+        <td class="mono">${esc(short(i.observed_at_sha))}</td>
+        <td><span class="tag ${i.sha_status==="historical"?"warn":"ok"}">${esc(i.sha_status||"—")}</span></td></tr>`).join("")}
+      </table>` : '<div class="empty">No knowledge was permitted for this role and question.</div>';
+    $("srcDetails").style.display = "block";
+  } catch(e){ $("answer").textContent = "—"; $("chatErr").textContent = String(e); }
+  finally { $("askBtn").disabled = false; $("askBtn").textContent = "Ask the Service Expert"; }
+}
+
+/* ============================ KNOWLEDGE ============================ */
+async function renderKnowledge(){
+  const body = $("content");
+  body.innerHTML = `
+    <div class="grid">
+      <div class="card">
+        <h3>Provenance browser</h3>
+        <div class="row"><label style="margin:0">Service Expert</label></div>
+        <div id="knowInstance"></div>
+        <div class="row" style="margin-top:12px;justify-content:space-between">
+          <label style="margin:0">Visible as role</label>
+          <span class="hint" id="knowRoleHint"></span>
+        </div>
+        <div class="chips" style="flex-wrap:wrap" id="knowRoles">
+          ${ROLES.map(r=>`<button class="chip ${state.roles.includes(r)?"on":""}" data-r="${r}">${r}</button>`).join("")}
+        </div>
+        <div class="row" style="margin-top:12px">
+          <input id="knowSearch" placeholder="Filter text…" style="flex:1">
+          <select id="knowCat" style="width:auto"><option value="">all categories</option></select>
+          <select id="knowStatus" style="width:auto"><option value="">all statuses</option></select>
+        </div>
+        <div class="err" id="knowErr"></div>
+      </div>
+      <div class="card" style="grid-column:span 2">
+        <div class="row" style="justify-content:space-between;margin-bottom:10px">
+          <h3 style="margin:0">Knowledge items <span class="tag" id="knowCount"></span></h3>
+          <button class="btn sm" onclick="openAddKnowledge()">+ Add knowledge</button>
+        </div>
+        <div id="knowTable"><div class="empty">Select an expert and role.</div></div>
+      </div>
+    </div>`;
+  $("knowInstance").appendChild(instancePicker());
+  const catSel = $("knowCat");
+  CATEGORIES.forEach(c => catSel.add(new Option(c, c)));
+  document.querySelectorAll("#knowRoles .chip").forEach(c=>{
+    c.onclick = ()=> {
+      c.classList.toggle("on");
+      const next = [...document.querySelectorAll("#knowRoles .chip.on")].map(x=>x.dataset.r);
+      if(!next.length){ c.classList.add("on"); return; }
+      state.roles = next;
+      setRoles(next);
+      loadKnowledge();
+    };
+  });
+  $("knowSearch").oninput = loadKnowledge;
+  $("knowCat").onchange = loadKnowledge;
+  $("knowStatus").onchange = loadKnowledge;
+  $("knowRoleHint").textContent = `Knowledge list is itself RBAC-filtered — you only see items permitted for your selected roles.`;
+  loadKnowledge();
+}
+
+async function loadKnowledge(){
+  const iid = state.instance || (state.experts[0] && state.experts[0].instance_id);
+  if(!iid){ return; }
+  const search = ($("knowSearch").value || "").toLowerCase();
+  const cat = $("knowCat").value;
+  const status = $("knowStatus").value;
+  try {
+    const d = await api(`/service-experts/${enc(iid)}`, {headers:{"X-Roles": state.roles.join(",")}});
+    const items = (d.knowledge||[]).filter(k =>
+      (!cat || k.category===cat) && (!status || k.verification_status===status) &&
+      (!search || (k.content+" "+k.source+" "+k.knowledge_id).toLowerCase().includes(search)));
+    $("knowCount").textContent = items.length + " shown";
+    const box = $("knowTable");
+    if(!items.length){ box.innerHTML = '<div class="empty">No items match. Change the role or filters — or add one.</div>'; return; }
+    box.innerHTML = `
+      <table><tr><th>category</th><th>content / source</th><th>verification</th><th>repo · branch · SHA</th><th>roles</th></tr>${
+      items.map(k=>`
+        <tr>
+          <td><span class="tag acc">${esc(k.category)}</span></td>
+          <td><div>${esc(k.content)}</div><div class="mono" style="margin-top:4px">${esc(k.source)}</div></td>
+          <td><span class="tag ${k.verification_status==="UNVERIFIED"?"warn":"ok"}">${esc(k.verification_status)}</span></td>
+          <td class="mono">${esc(short(k.repo))} · ${esc(k.branch||"—")} · ${esc(short(k.observed_at_sha))}
+              <div><span class="tag ${k.sha_status==="historical"?"warn":"ok"}">${esc(k.sha_status||"—")}</span></div></td>
+          <td class="mono">${esc((k.allowed_roles||[]).join(", "))}</td>
+        </tr>`).join("")}
+      </table>`;
+  } catch(e){ $("knowErr").textContent = String(e); }
+}
+
+/* ============================ EXPERTS ============================ */
+async function renderExperts(){
+  const body = $("content");
+  const list = state.experts;
+  body.innerHTML = `
+    <div class="stack">
+      <div class="row" style="justify-content:space-between">
+        <div><h3 style="margin:0">Instances</h3><p class="sub" style="margin-top:2px">Each is an isolated namespace over a real Git repo.</p></div>
+        <button class="btn" onclick="openCreateExpert()">+ New Service Expert</button>
+      </div>
+      <div class="cols" id="expertList"></div>
+      <div class="err" id="expErr"></div>
+    </div>`;
+  const box = $("expertList");
+  if(!list.length){
+    box.innerHTML = '<div class="card empty">No Service Experts yet. Create one from the API Gateway demo manifest.</div>';
+    return;
+  }
+  box.innerHTML = list.map(x=>`
+    <div class="expert">
+      <div class="row" style="justify-content:space-between">
+        <div class="name">${esc(x.service_name)}</div>
+        <span class="tag">${esc(x.template)}</span>
+      </div>
+      <div class="purpose">${esc(x.service_purpose)}</div>
+      <div class="row" style="flex-wrap:wrap">
+        <span class="tag mono">${esc(short(x.git.sha))}</span>
+        <span class="tag">${esc(x.git.branch||"—")}</span>
+        <span class="tag ${x.git.sha_matches_manifest?"ok":"warn"}">SHA ${x.git.sha_matches_manifest?"matches":"differs"} manifest</span>
+        ${x.git.dirty?`<span class="tag warn">working tree dirty</span>`:""}
+      </div>
+      <table style="margin-top:12px">
+        <tr><th>id</th><td class="mono">${esc(x.instance_id)}</td><th>knowledge</th><td>${x.knowledge_count}</td></tr>
+        <tr><th>created</th><td class="mono">${esc(x.created_at)}</td><th>commit</th><td class="mono">${esc(short(x.git.sha))}</td></tr>
+      </table>
+      <div class="row" style="margin-top:12px;gap:8px">
+        <button class="btn sm ghost" onclick="openInspect('${esc(x.instance_id)}')">Inspect</button>
+        <button class="btn sm ghost" onclick="state.instance='${esc(x.instance_id)}';nav('chat')">Chat as ${esc(state.roles[0])}</button>
+      </div>
+    </div>`).join("");
+}
+
+async function openInspect(iid){
+  try {
+    const d = await api(`/service-experts/${enc(iid)}`, {headers:{"X-Roles":"Developer"}});
+    const git = d.git || {};
+    $("modal").innerHTML = `
+      <h2>${esc((d.service||{}).name||iid)}</h2>
+      <div class="sub">${esc((d.service||{}).purpose||"")}</div>
+      <div class="badges">
+        <span class="tag">roles: ${esc((d.roles||[]).join(", "))}</span>
+        <span class="tag ${git.sha_matches_manifest?"ok":"warn"}">SHA ${git.sha_matches_manifest?"matches":"differs"} manifest</span>
+      </div>
+      <div class="cols">
+        <div class="detail"><b>Git</b>
+          <div class="mono" style="margin-top:6px">branch ${esc(git.branch)}</div>
+          <div class="mono">${esc(git.sha)}</div>
+          <div class="mono">manifest ${esc(short(git.manifest_sha))}</div>
+        </div>
+        <div class="detail"><b>Recent commits</b>
+          ${(git.commits||[]).map(c=>`<div class="mono" style="margin:3px 0">${esc(short(c.sha))} ${esc(c.subject)}</div>`).join("")||'<div class="k">—</div>'}
+        </div>
+        <div class="detail"><b>Files</b>
+          <div class="mono" style="margin-top:6px">${esc((git.files||[]).slice(0,8).join("<br>"))}</div>
+        </div>
+      </div>
+      <hr class="sep">
+      <h3>SOW</h3>
+      <pre class="detail" style="white-space:pre-wrap;font-family:inherit">${esc(JSON.stringify(d.manifest&&d.manifest.sow||{}, null, 2))}</pre>
+      <div class="row" style="margin-top:16px;justify-content:flex-end">
+        <button class="btn ghost sm" onclick="closeModal()">Close</button>
+        <button class="btn sm" onclick="state.instance='${esc(iid)}';nav('chat');closeModal()">Chat with this expert</button>
+      </div>`;
+    $("modalWrap").classList.add("show");
+  } catch(e){ toast(String(e), "bad"); }
+}
+
+async function openCreateExpert(){
+  let demo = {};
+  try { demo = (await api("/ui/manifest/demo")).manifest || {}; }
+  catch(e){ /* fall through */ }
+  const tpls = state.templates.length ? state.templates
+    : (await api("/ui/templates")).templates || [];
+  $("modal").innerHTML = `
+    <h2>New Service Expert</h2>
+    <div class="sub">Manifest is validated against the chosen template before anything is created.</div>
+    <label>Template</label>
+    <select id="tpl">
+      ${tpls.map(t=>`<option value="${esc(t.template_id)}">${esc(t.template_id)} (v${esc(t.version||"?")})</option>`).join("")}
+    </select>
+    <label>Instance id</label>
+    <input id="newIid" placeholder="my-expert" value="demo-${Math.random().toString(36).slice(2,7)}">
+    <label>Manifest (YAML/JSON)</label>
+    <textarea id="manifest" rows="14">${esc(JSON.stringify(demo, null, 2))}</textarea>
+    <div class="err" id="createErr"></div>
+    <div class="row" style="margin-top:16px;justify-content:flex-end">
+      <button class="btn ghost sm" onclick="closeModal()">Cancel</button>
+      <button class="btn sm" id="createBtn">Create instance</button>
+    </div>`;
+  $("modalWrap").classList.add("show");
+  $("createBtn").onclick = async ()=>{
+    $("createErr").textContent = "";
+    $("createBtn").disabled = true;
+    try {
+      let manifest;
+      try { manifest = JSON.parse($("manifest").value); }
+      catch(e){ throw new Error("Manifest is not valid JSON: " + e.message); }
+      const d = await api("/service-experts", {json:{
+        template: $("tpl").value,
+        instance_id: $("newIid").value.trim(),
+        manifest
+      }});
+      toast(`Created ${d.instance_id} — seeded ${d.seeded_knowledge} knowledge items`, "ok");
+      closeModal();
+      await refresh();
+      nav("experts");
+      state.instance = d.instance_id;
+    } catch(e){ $("createErr").textContent = String(e); }
+    finally { $("createBtn").disabled = false; }
+  };
+}
+
+/* ============================ API / TEMPLATE ============================ */
+async function renderApi(){
+  const tpls = state.templates.length ? state.templates
+    : (await api("/ui/templates")).templates || [];
+  const t = tpls[0] || {};
+  const sec = t.sections || {};
+  const fieldRows = (list,box)=> (list||[]).map(f=>
+    `<div style="margin:4px 0"><code class="mono">${esc(f.key)}</code>
+      &nbsp;<span class="tag">${esc(f.type||"?")}</span>
+      <div class="hint">${esc(f.description||"")}</div></div>`).join("");
+  $("content").innerHTML = `
+    <div class="grid">
+      <div class="cols">
+        <div class="card">
+          <h3>The root service contract</h3>
+          <p class="sub">Service 013 is itself an OpenAPI service — contract at <code class="mono">openapi.yaml</code>, re-served at <code class="mono">/openapi.yaml</code> and <code class="mono">/docs</code>.</p>
+          <table>
+            <tr><th>op</th><th>route</th></tr>
+            <tr><td>POST</td><td class="mono">/service-experts</td><td class="hint">instantiate (201)</td></tr>
+            <tr><td>POST</td><td class="mono">/service-experts/{id}/ingest</td><td class="hint">feed (201)</td></tr>
+            <tr><td>POST</td><td class="mono">/service-experts/{id}/chat</td><td class="hint">all roles (200)</td></tr>
+            <tr><td>GET</td><td class="mono">/service-experts/{id}</td><td class="hint">role-filtered (200)</td></tr>
+            <tr><td>GET</td><td class="mono">/health</td><td class="hint">liveness</td></tr>
+          </table>
+          <div class="row" style="margin-top:14px;gap:8px">
+            <a class="btn sm" href="/openapi.yaml" target="_blank">open openapi.yaml</a>
+            <a class="btn sm ghost" href="/docs" target="_blank">Swagger UI</a>
+          </div>
+        </div>
+        <div class="card">
+          <h3>Identity &amp; roles</h3>
+          <p class="sub">The system reuses existing RBAC — passed as headers, never invented.</p>
+          <div class="detail"><b>X-User-Id</b> <span class="k">— required for chat/ingest (401 if missing)</span></div>
+          <div class="detail" style="margin-top:8px"><b>X-Roles</b> <span class="k">— comma separated; 403 if no declared role matches</span></div>
+          <div class="badges">${ROLES.map(r=>`<span class="tag acc">${r}</span>`).join("")}</div>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Template 001 — openapi-service <span class="tag">v${esc(t.version||"—")}</span></h3>
+        <p class="sub">Machine-readable field classes. Missing <b>required</b> fields reject instantiation with 422.</p>
+        <div class="cols">
+          <div class="fieldcl"><h4>required</h4>${fieldRows(sec.required)}</div>
+          <div class="fieldcl"><h4>conditional</h4>${fieldRows(sec.conditional)}</div>
+          <div class="fieldcl"><h4>growing</h4>${fieldRows(sec.growing)}</div>
+        </div>
+      </div>
+    </div>`;
+}
+
+/* ============================ ADD KNOWLEDGE ============================ */
+function openAddKnowledge(){
+  $("modal").innerHTML = `
+    <h2>Add verified knowledge</h2>
+    <div class="sub">Stored with provenance (repo / branch / SHA resolved from the bound repository) and a verification status.</div>
+    <label>Category</label>
+    <select id="addCat">${CATEGORIES.map(c=>`<option>${c}</option>`).join("")}</select>
+    <label>Verification status</label>
+    <select id="addStatus">${STATUSES.map(s=>`<option>${s}</option>`).join("")}</select>
+    <label>Content</label>
+    <textarea id="addContent" rows="4" placeholder="Verified fact learned during development…"></textarea>
+    <label>Source (provenance)</label>
+    <input id="addSource" placeholder="RCA-2026-xxxx / PR / release">
+    <label>Allowed roles</label>
+    <div class="chips" style="margin-top:8px">${ROLES.map(r=>`<button class="chip on" data-r="${r}">${r}</button>`).join("")}</div>
+    <div class="err" id="addErr"></div>
+    <div class="row" style="margin-top:16px;justify-content:flex-end">
+      <button class="btn ghost sm" onclick="closeModal()">Cancel</button>
+      <button class="btn sm" id="addBtn">Save knowledge</button>
+    </div>`;
+  $("modalWrap").classList.add("show");
+  document.querySelectorAll("#modal .chip").forEach(c=>{
+    c.onclick = ()=> c.classList.toggle("on");
+  });
+  $("addBtn").onclick = async ()=>{
+    $("addErr").textContent = "";
+    const roles = [...document.querySelectorAll("#modal .chip.on")].map(x=>x.dataset.r);
+    if(!roles.length){ $("addErr").textContent = "Pick at least one allowed role."; return; }
+    const iid = state.instance || (state.experts[0] && state.experts[0].instance_id);
+    if(!iid){ $("addErr").textContent = "Create a Service Expert first."; return; }
+    $("addBtn").disabled = true;
+    try {
+      const d = await api(`/service-experts/${enc(iid)}/ingest`, {json:{
+        category: $("addCat").value, verification_status: $("addStatus").value,
+        content: $("addContent").value, source: $("addSource").value, allowed_roles: roles
+      }});
+      toast(`Saved ${short(d.knowledge_id)} @ ${short(d.observed_at_sha)} — ask about it in Chat to see it used.`, "ok");
+      closeModal();
+      if(state.current==="knowledge") loadKnowledge();
+    } catch(e){ $("addErr").textContent = String(e); }
+    finally { $("addBtn").disabled = false; }
+  };
+}
+
+/* ============================ shared ============================ */
+function showError(e){
+  $("content").innerHTML = `<div class="empty">${esc(String(e))}</div>`;
+}
+function closeModal(){ $("modalWrap").classList.remove("show"); }
+$("modalWrap").addEventListener("click", e=>{ if(e.target===e.currentTarget) closeModal(); });
+function enc(s){ return encodeURIComponent(s); }
+
+async function refresh(){
+  const results = await Promise.allSettled([
+    api("/ui/experts"), api("/ui/templates"), api("/ui/overview"), api("/ui/status")
+  ]);
+  const [exp, tpl, ov, st] = results.map(r=> r.status==="fulfilled" ? r.value : {});
+  state.experts = exp.experts || [];
+  state.templates = tpl.templates || [];
+  state.overview = ov || {};
+  if(!state.instance && state.experts.length) state.instance = state.experts[0].instance_id;
+  $("navExp").textContent = state.experts.length || "";
+  $("navKnow").textContent = state.overview.knowledge_total ?? "";
+  $("navChat").textContent = state.experts.length ? state.experts.length : "";
+  const live = (st || state.overview || {}).endpoint_configured;
+  const model = (st || state.overview || {}).llm_model;
+  const pill = $("llmPill"), txt = $("llmText");
+  pill.className = "pill " + (live ? "ok" : "warn");
+  pill.querySelector(".dot").className = "dot";
+  txt.textContent = live ? `Live AI · ${model||""}` : "Offline mode (deterministic answers)";
+}
+
+(async function boot(){
+  setRoles(state.roles);
+  await refresh();
+  renderDash();
+  document.dispatchEvent(new CustomEvent("safi-ready"));
+})();
+</script>
+</body>
+</html>
