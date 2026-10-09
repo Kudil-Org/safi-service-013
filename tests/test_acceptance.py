@@ -554,3 +554,20 @@ def test_unverified_experience_is_labelled(client, gw):
                roles="User").json()["answer"]
     assert "UNVERIFIED" in ans
     assert "does not silently override" in ans or "Unverified" in ans
+
+
+def test_chat_ui_is_served_and_shares_the_one_endpoint(client, gw):
+    iid = gw["instance_id"]
+    root = client.get("/")
+    assert root.status_code == 200
+    assert "text/html" in root.headers["content-type"]
+    assert "/chat" in root.text
+
+    instances = client.get("/ui/instances")
+    assert instances.status_code == 200
+    assert iid in instances.json()["instances"]
+
+    ui_paths = {"/", "/ui/instances"}
+    served = client.get("/openapi.json").json()["paths"]
+    for p in ui_paths:
+        assert p not in served

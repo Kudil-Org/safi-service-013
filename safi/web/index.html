@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>SAFI Service 013 — Root Service Expert</title>
+<style>
+  :root { --bg:#0f1420; --panel:#171e2e; --panel2:#1e2739; --line:#2b364b;
+          --ink:#e7ecf5; --mut:#93a0b8; --acc:#4f8cff; --ok:#37c98b; --warn:#f0b429; --bad:#f26d6d; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink);
+         font:14px/1.5 "Segoe UI", system-ui, sans-serif; }
+  header { padding:14px 20px; border-bottom:1px solid var(--line);
+           display:flex; align-items:center; gap:12px; background:var(--panel); }
+  header h1 { font-size:16px; margin:0; font-weight:600; }
+  header .tag { font-size:12px; color:var(--mut); border:1px solid var(--line);
+                padding:2px 8px; border-radius:10px; }
+  header .sha { margin-left:auto; font-family:Consolas,monospace; font-size:12px; color:var(--mut); }
+  main { display:grid; grid-template-columns: 320px 1fr 380px; gap:14px; padding:14px; height:calc(100vh - 56px); }
+  .panel { background:var(--panel); border:1px solid var(--line); border-radius:10px;
+           padding:14px; overflow:auto; }
+  .panel h2 { font-size:12px; text-transform:uppercase; letter-spacing:.06em;
+              color:var(--mut); margin:0 0 10px; }
+  label { display:block; font-size:12px; color:var(--mut); margin:10px 0 4px; }
+  input, select, textarea { width:100%; background:var(--panel2); color:var(--ink);
+      border:1px solid var(--line); border-radius:7px; padding:8px; font:inherit; }
+  textarea { resize:vertical; }
+  .roles { display:grid; grid-template-columns:1fr 1fr; gap:4px 8px; margin-top:4px; }
+  .roles label { display:flex; align-items:center; gap:6px; margin:0; color:var(--ink); font-size:13px; }
+  .roles input { width:auto; }
+  button { background:var(--acc); color:#fff; border:0; border-radius:7px;
+           padding:9px 14px; font-weight:600; cursor:pointer; }
+  button.ghost { background:var(--panel2); border:1px solid var(--line); color:var(--ink); }
+  button:disabled { opacity:.5; cursor:default; }
+  .row { display:flex; gap:8px; align-items:center; }
+  #q { min-height:80px; }
+  #answer { white-space:pre-wrap; background:#0c111b; border:1px solid var(--line);
+            border-radius:8px; padding:12px; min-height:200px; font-family:Consolas,monospace;
+            font-size:13px; }
+  .meta { display:flex; flex-wrap:wrap; gap:6px; margin:10px 0; }
+  .pill { font-size:11px; padding:2px 8px; border-radius:10px; border:1px solid var(--line);
+          color:var(--mut); }
+  .pill.good { color:var(--ok); border-color:#1d5b43; }
+  .pill.warn { color:var(--warn); border-color:#5b4a1d; }
+  .pill.bad  { color:var(--bad);  border-color:#5b2121; }
+  table { width:100%; border-collapse:collapse; font-size:12px; }
+  th, td { text-align:left; padding:5px 6px; border-bottom:1px solid var(--line);
+           vertical-align:top; }
+  th { color:var(--mut); font-weight:600; }
+  td.mono { font-family:Consolas,monospace; color:var(--mut); }
+  .err { color:var(--bad); margin-top:8px; white-space:pre-wrap; }
+  .hint { color:var(--mut); font-size:12px; margin-top:8px; }
+  .examples button { display:block; width:100%; text-align:left; margin:4px 0;
+                     background:var(--panel2); border:1px solid var(--line); color:var(--ink);
+                     font-weight:400; font-size:12px; padding:6px 8px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>SAFI Service 013 — Root Service Expert</h1>
+  <span class="tag">OpenAPI Service Template</span>
+  <span class="tag">RBAC-sensitive Chat</span>
+  <span class="sha" id="sha">—</span>
+</header>
+
+<main>
+  <section class="panel">
+    <h2>Caller / RBAC context</h2>
+    <label>Service Expert instance</label>
+    <select id="instance"></select>
+
+    <label>User id (X-User-Id)</label>
+    <input id="user" value="amina" />
+
+    <label>Roles (X-Roles) — determines permitted context before the model</label>
+    <div class="roles" id="roles"></div>
+
+    <label>Question</label>
+    <textarea id="q">What endpoints are available?</textarea>
+    <div class="row" style="margin-top:10px">
+      <button id="ask">Ask the Service Expert</button>
+      <button class="ghost" id="clear">Clear</button>
+    </div>
+
+    <div class="examples">
+      <h2 style="margin-top:16px">Example questions</h2>
+      <button data-q="What endpoints are available?" data-roles="User">User · What endpoints are available?</button>
+      <button data-q="How do I call the createReservation API?" data-roles="User">User · How do I call createReservation?</button>
+      <button data-q="Show me a valid example request." data-roles="User">User · Show me a valid example request</button>
+      <button data-q="Where is createReservation implemented and what tests cover it? What exact SHA are you describing?" data-roles="Developer">Developer · Where is it implemented + tests + SHA?</button>
+      <button data-q="Does POST /reservations need any special header?" data-roles="User">User · Does createReservation need a header?</button>
+      <button data-q="Does check() handle expired tokens and is that fact current?" data-roles="Developer">Developer · Is a learned fact still current?</button>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2>Answer — fresh micro-session over role-filtered context</h2>
+    <div class="meta" id="meta"></div>
+    <div id="answer">No answer yet.</div>
+    <div class="err" id="err"></div>
+    <div class="hint">Same Service Expert for every role — only the permitted context differs.
+      If no external LLM endpoint is configured, answers are composed deterministically from
+      the role-permitted context (nothing outside it is invented).</div>
+  </section>
+
+  <section class="panel">
+    <h2>Context actually loaded (RBAC-filtered)</h2>
+    <div id="ctx"></div>
+
+    <h2 style="margin-top:18px">Ingest verified knowledge (feed interface)</h2>
+    <label>Category</label>
+    <select id="icat">
+      <option>SOW</option><option>OpenAPI</option><option>repo training</option>
+      <option>acceptance test result</option><option>RCA finding</option>
+      <option>fix result</option><option>human correction</option>
+      <option>release result</option><option>Help correction</option>
+    </select>
+    <label>Verification status</label>
+    <select id="istatus">
+      <option>VERIFIED</option><option>AUTHORITATIVE</option><option>UNVERIFIED</option>
+    </select>
+    <label>Content</label>
+    <textarea id="icontent" placeholder="Verified fact learned during development..."></textarea>
+    <label>Source (provenance)</label>
+    <input id="isource" placeholder="RCA-2026-xxxx / test run / PR" />
+    <div class="row" style="margin-top:10px">
+      <button id="ingest">Ingest</button>
+    </div>
+    <div class="err" id="ierr"></div>
+    <div class="hint">Provenance (repo/branch/SHA) is attached automatically from the bound repository.</div>
+  </section>
+</main>
+
+<script>
+const ROLES = ["User","Developer","Tester","RCA","Dispatcher","Fixer"];
+const rolesBox = document.getElementById("roles");
+ROLES.forEach(r => {
+  const l = document.createElement("label");
+  const cb = document.createElement("input");
+  cb.type="checkbox"; cb.value=r; cb.id="role-"+r; cb.checked = (r==="User");
+  l.appendChild(cb); l.appendChild(document.createTextNode(r));
+  rolesBox.appendChild(l);
+});
+
+const $ = id => document.getElementById(id);
+
+function selectedRoles(){
+  return ROLES.filter(r => $("role-"+r).checked);
+}
+
+async function loadInstances(){
+  try {
+    const r = await fetch("/ui/instances");
+    const d = await r.json();
+    const sel = $("instance"); sel.innerHTML = "";
+    d.instances.forEach(id => {
+      const o = document.createElement("option"); o.value=id; o.textContent=id; sel.appendChild(o);
+    });
+    if (!d.instances.length) {
+      const o = document.createElement("option"); o.value="api-gateway-expert";
+      o.textContent="api-gateway-expert (not created yet)"; sel.appendChild(o);
+    }
+  } catch(e){ $("err").textContent = "Could not load instances: "+e; }
+}
+
+function pill(text, cls){ const s=document.createElement("span"); s.className="pill"+(cls?" "+cls:""); s.textContent=text; return s; }
+
+function showMeta(d){
+  const m=$("meta"); m.innerHTML="";
+  m.appendChild(pill("roles: "+(d.roles.join(", ")||"—")));
+  m.appendChild(pill("permits: "+(d.permitted_categories.join(", ")||"—")));
+  m.appendChild(pill("mode: "+d.llm_mode));
+  m.appendChild(pill("session: "+d.session_id));
+  if (d.endpoint_configured) m.appendChild(pill("LLM endpoint: configured","good"));
+  else m.appendChild(pill("LLM endpoint: none (extractive fallback)","warn"));
+}
+
+function showContext(items){
+  const box=$("ctx"); box.innerHTML="";
+  const t=document.createElement("table");
+  t.innerHTML="<tr><th>category</th><th>status</th><th>SHA</th><th>id</th></tr>";
+  items.forEach(i=>{
+    const tr=document.createElement("tr");
+    const cls = i.sha_status==="historical" ? "bad" : "good";
+    tr.innerHTML = `<td>${i.category}</td>
+      <td>${i.verification_status}</td>
+      <td class="mono">${(i.observed_at_sha||"—").slice(0,12)}<br><span class="pill ${cls}">${i.sha_status||"?"}</span></td>
+      <td class="mono">${i.knowledge_id}</td>`;
+    t.appendChild(tr);
+  });
+  box.appendChild(t);
+}
+
+async function ask(){
+  $("err").textContent=""; $("answer").textContent="Thinking...";
+  const roles = selectedRoles();
+  if(!roles.length){ $("err").textContent="Select at least one role."; $("answer").textContent="—"; return; }
+  const iid = $("instance").value;
+  $("ask").disabled=true;
+  try {
+    const r = await fetch(`/service-experts/${encodeURIComponent(iid)}/chat`, {
+      method:"POST",
+      headers:{ "Content-Type":"application/json", "X-User-Id":$("user").value, "X-Roles":roles.join(",") },
+      body: JSON.stringify({ message: $("q").value })
+    });
+    const d = await r.json();
+    if(!r.ok){ $("answer").textContent="—"; $("err").textContent=JSON.stringify(d.detail||d,null,2); return; }
+    $("answer").textContent = d.answer;
+    showMeta(d); showContext(d.context_items);
+    const g = await fetch(`/service-experts/${encodeURIComponent(iid)}`, {headers:{"X-Roles":roles.join(",")}});
+    if(g.ok){ const gd=await g.json(); if(gd.git && gd.git.sha) $("sha").textContent = gd.git.branch+" @ "+gd.git.sha.slice(0,12); }
+  } catch(e){ $("err").textContent=String(e); $("answer").textContent="—"; }
+  finally { $("ask").disabled=false; }
+}
+
+async function ingest(){
+  $("ierr").textContent="";
+  const roles = selectedRoles();
+  if(!roles.length){ $("ierr").textContent="Select at least one role (for this demo ingest uses your X-Roles)."; return; }
+  const iid=$("instance").value;
+  $("ingest").disabled=true;
+  try{
+    const r = await fetch(`/service-experts/${encodeURIComponent(iid)}/ingest`,{
+      method:"POST",
+      headers:{ "Content-Type":"application/json", "X-User-Id":$("user").value, "X-Roles":roles.join(",") },
+      body: JSON.stringify({ category:$("icat").value, verification_status:$("istatus").value,
+                             content:$("icontent").value, source:$("isource").value })
+    });
+    const d=await r.json();
+    if(!r.ok){ $("ierr").textContent=JSON.stringify(d.detail||d,null,2); return; }
+    $("ierr").textContent="Stored "+d.knowledge_id+" ("+d.verification_status+", observed @ "+(d.observed_at_sha||"").slice(0,12)+"). Ask a fresh question to see it used.";
+    $("icontent").value=""; $("isource").value="";
+  } catch(e){ $("ierr").textContent=String(e); }
+  finally { $("ingest").disabled=false; }
+}
+
+document.querySelectorAll(".examples button").forEach(b=>{
+  b.addEventListener("click", ()=>{
+    $("q").value = b.dataset.q;
+    ROLES.forEach(r=>{ $("role-"+r).checked = b.dataset.roles.split(",").includes(r); });
+    ask();
+  });
+});
+$("ask").addEventListener("click", ask);
+$("ingest").addEventListener("click", ingest);
+$("clear").addEventListener("click", ()=>{ $("answer").textContent="No answer yet."; $("meta").innerHTML=""; $("ctx").innerHTML=""; $("err").textContent=""; });
+
+loadInstances();
+</script>
+</body>
+</html>

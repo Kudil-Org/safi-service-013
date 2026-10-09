@@ -38,6 +38,11 @@ python -m uvicorn safi.main:app --host 127.0.0.1 --port 8013
 :: or simply: run.bat
 ```
 
+Then open <http://127.0.0.1:8013/> for a small built-in chat page (pick the
+instance, set `X-User-Id` + roles, ask, and inspect the RBAC-filtered context
+that was loaded). It is a thin page over the **one** Chat endpoint — not a
+separate Help application. Swagger UI remains at `/docs`.
+
 Run all acceptance tests (TEST 1–12 plus RBAC/ingest extras):
 
 ```bat
@@ -262,9 +267,10 @@ match).
 | 11 | Root openapi.yaml validated + exercised | `test_11_root_openapi_contract` |
 | 12 | Restart persistence | `test_12_restart_persistence` |
 | + | identity/role enforcement, ingest validation, unverified labelling | `test_rbac_*`, `test_ingest_validation`, `test_unverified_*` |
+| + | built-in chat page served over the one Chat endpoint | `test_chat_ui_is_served_and_shares_the_one_endpoint` |
 
 ```bat
-python -m pytest -q        :: 15 passed
+python -m pytest -q        :: 16 passed
 ```
 
 State (templates, instances, knowledge, sessions) persists in SQLite
@@ -286,6 +292,7 @@ safi/
   template.py      template loading + manifest validation
   rbac.py          standard roles, role->context map, category defaults
   chat/            role-filtered context assembly + answer generation
+  web/index.html   small built-in chat page (no build step, one endpoint)
   storage/         SQLite provenance store (instances, knowledge, sessions)
   llm.py           one configured LLM endpoint (extractive fallback)
   gitinfo.py       Git CLI: repo/branch/SHA/log/files

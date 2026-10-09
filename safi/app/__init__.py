@@ -1,6 +1,10 @@
+from pathlib import Path
+
 import yaml
 from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse
+
+WEB_DIR = Path(__file__).resolve().parent.parent / "web"
 
 from safi import config
 from safi.models import (
@@ -70,5 +74,13 @@ def create_app(db_path=None, root_dir=None, templates_dir=None, llm=None):
 
         text = config.OPENAPI_FILE.read_text(encoding="utf-8")
         return Response(content=text, media_type="application/yaml")
+
+    @app.get("/", include_in_schema=False)
+    def ui_root():
+        return HTMLResponse((WEB_DIR / "index.html").read_text(encoding="utf-8"))
+
+    @app.get("/ui/instances", include_in_schema=False)
+    def ui_instances():
+        return {"instances": [row["id"] for row in root.store.list_instances()]}
 
     return app
