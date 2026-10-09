@@ -237,6 +237,7 @@ async function api(path, opts={}){
   if(opts.json !== undefined){
     headers["Content-Type"] = "application/json";
     opts.body = JSON.stringify(opts.json);
+    opts.method = "POST";
   }
   const r = await fetch(path, Object.assign({headers}, opts));
   const t = await r.text();
